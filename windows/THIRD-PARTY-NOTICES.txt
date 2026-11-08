@@ -1,0 +1,53 @@
+GitVelto for Windows - 第三者ソフトウェアのライセンス表示 (Third-party notices)
+==========================================================================
+
+GitVelto は次の第三者ソフトウェアを含んでいます。各ライセンスの原文を以下に示します。
+GitVelto includes the following third-party software. The license texts follow.
+
+--------------------------------------------------------------------------
+1. Fluent UI System Icons
+--------------------------------------------------------------------------
+用途: 右クリックメニューのアイコン (menuicons\*.ico) とアイコンオーバーレイ (overlays\*.ico)
+      の記号は、このアイコンセットの図形から作成しています。
+Usage: the symbols of the context menu icons and the icon overlays are made from this icon set.
+Source: https://github.com/microsoft/fluentui-system-icons
+
+MIT License
+
+Copyright (c) 2020 Microsoft Corporation
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+--------------------------------------------------------------------------
+2. .NET Runtime
+--------------------------------------------------------------------------
+用途: インストーラー GitVeltoSetup.exe は .NET ランタイムを同梱しています。
+      GitVelto 本体はインストール済みの .NET デスクトップ ランタイムを使います (同梱しません)。
+Usage: the installer GitVeltoSetup.exe bundles the .NET runtime.
+       GitVelto itself runs on the installed .NET Desktop Runtime (not bundled).
+Source: https://github.com/dotnet/runtime
+.NET のライセンス原文と、.NET が含む第三者ソフトウェアの表示は、同じフォルダの
+dotnet-LICENSE.txt と dotnet-THIRD-PARTY-NOTICES.txt にあります。
+The .NET license and the notices of the third-party software included in .NET are in
+dotnet-LICENSE.txt and dotnet-THIRD-PARTY-NOTICES.txt in the same folder.
+
+--------------------------------------------------------------------------
+GitVelto は Git for Windows (https://gitforwindows.org/) を別のプログラムとして呼び出して
+動作しますが、Git for Windows を同梱・再配布していません。
+GitVelto runs Git for Windows as a separate program; it does not bundle or redistribute it.

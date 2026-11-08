@@ -69,6 +69,18 @@ if ($kit) {
     Write-Warning 'Windows SDK (makeappx) not found: the Windows 11 compact context menu will not be available.'
 }
 
+Step 'third-party notices'
+Copy-Item (Join-Path $here 'THIRD-PARTY-NOTICES.txt') $out
+# .NET license texts of the runtime bundled in GitVeltoSetup.exe (version pinned in GitVeltoSetup.csproj)
+[xml]$setupProj = Get-Content (Join-Path $here 'src\GitVeltoSetup\GitVeltoSetup.csproj')
+$rtVersion = ($setupProj.Project.PropertyGroup | ForEach-Object { $_.RuntimeFrameworkVersion } | Where-Object { $_ }) | Select-Object -First 1
+dotnet restore (Join-Path $here 'src\GitVeltoSetup\GitVeltoSetup.csproj') -r win-x64 -v q | Out-Null
+$packages = if ($env:NUGET_PACKAGES) { $env:NUGET_PACKAGES } else { Join-Path $env:USERPROFILE '.nuget\packages' }
+$rtPack = Join-Path $packages "microsoft.netcore.app.runtime.win-x64\$rtVersion"
+if (-not (Test-Path (Join-Path $rtPack 'LICENSE.TXT'))) { throw ".NET runtime pack $rtVersion not found: $rtPack" }
+Copy-Item (Join-Path $rtPack 'LICENSE.TXT') (Join-Path $out 'dotnet-LICENSE.txt')
+Copy-Item (Join-Path $rtPack 'THIRD-PARTY-NOTICES.TXT') (Join-Path $out 'dotnet-THIRD-PARTY-NOTICES.txt')
+
 Copy-Item (Join-Path $here 'scripts\register-shell.ps1') $out
 Copy-Item (Join-Path $here 'scripts\install.ps1') $out
 Get-ChildItem $out -Filter *.pdb | Remove-Item
@@ -93,6 +105,10 @@ if ($Setup) {
     [xml]$props = Get-Content (Join-Path $here 'Directory.Build.props')
     $setupExe = Join-Path $here "out\GitVeltoSetup-$($props.Project.PropertyGroup.Version).exe"
     Copy-Item (Join-Path $setupOut 'GitVeltoSetup.exe') $setupExe -Force
+    # Distribute the notices next to the installer as well.
+    foreach ($n in 'THIRD-PARTY-NOTICES.txt', 'dotnet-LICENSE.txt', 'dotnet-THIRD-PARTY-NOTICES.txt') {
+        Copy-Item (Join-Path $out $n) (Join-Path $here "out\$n") -Force
+    }
     Write-Host "installer: $setupExe" -ForegroundColor Green
 }
 

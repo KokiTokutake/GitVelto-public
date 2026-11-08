@@ -383,6 +383,13 @@ public sealed class AboutView : GVView
         p.Children.Add(new TextBlock { Text = "エクスプローラーに統合された Git クライアント", HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 8, 0, 0) });
         var git = new TextBlock { FontSize = 12, Foreground = Ui.Secondary(), HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 6, 0, 0) };
         p.Children.Add(git);
+        var notices = Path.Combine(AppContext.BaseDirectory, "THIRD-PARTY-NOTICES.txt");
+        if (File.Exists(notices))
+        {
+            var b = new Button { Content = "ライセンス情報", HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 14, 0, 0) };
+            b.Click += (_, _) => Shell.OpenInTextEditor(notices);
+            p.Children.Add(b);
+        }
         Content = p;
         Loaded += async (_, _) => git.Text = await Task.Run(Git.Version);
     }

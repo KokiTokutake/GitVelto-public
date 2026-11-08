@@ -42,12 +42,16 @@ public static class Program
             return 2;
         }
 
-        if (!HasDesktopRuntime())
+        var runtime = DesktopRuntime();
+        if (runtime == null || runtime < MinRuntime)
         {
             if (quiet) return 3;
+            var what = runtime == null
+                ? ".NET 10 デスクトップ ランタイムが見つかりません。GitVelto の実行に必要です。"
+                : $".NET 10 デスクトップ ランタイム {runtime} には既知の脆弱性があります ({MinRuntime} 以降で修正済み)。";
             var r = MessageBoxW(IntPtr.Zero,
-                ".NET 10 デスクトップ ランタイムが見つかりません。GitVelto の実行に必要です。\n\n" +
-                "ダウンロードページを開きますか？\n(「.NET デスクトップ ランタイム 10」の x64 版をインストールしてから、もう一度セットアップを実行してください)",
+                what + "\n\nダウンロードページを開きますか？\n" +
+                $"(「.NET デスクトップ ランタイム」{MinRuntime} 以降の x64 版をインストールしてから、もう一度セットアップを実行してください)",
                 Title, MB_YESNO | MB_ICONWARNING | MB_SETFOREGROUND);
             if (r == IDYES) Open(RuntimeUrl);
             return 3;
@@ -106,19 +110,26 @@ public static class Program
         return 0;
     }
 
-    private static bool HasDesktopRuntime()
+    /// <summary>Oldest .NET 10 Desktop Runtime accepted (10.0.0-10.0.13 have CVE-2026-111497).</summary>
+    private static readonly Version MinRuntime = new(10, 0, 14);
+
+    /// <summary>Newest installed .NET 10 Desktop Runtime (null = none).</summary>
+    private static Version? DesktopRuntime()
     {
         var roots = new[]
         {
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "dotnet"),
             Environment.GetEnvironmentVariable("DOTNET_ROOT") ?? "",
         };
+        Version? best = null;
         foreach (var root in roots.Where(r => r.Length > 0))
         {
             var dir = Path.Combine(root, "shared", "Microsoft.WindowsDesktop.App");
-            if (Directory.Exists(dir) && Directory.GetDirectories(dir, "10.*").Length > 0) return true;
+            if (!Directory.Exists(dir)) continue;
+            foreach (var d in Directory.GetDirectories(dir, "10.*"))
+                if (Version.TryParse(Path.GetFileName(d), out var v) && (best == null || v > best)) best = v;
         }
-        return false;
+        return best;
     }
 
     private static bool HasGit()
