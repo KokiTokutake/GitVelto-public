@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    GitVeltoSetup.exe: single-file installer. Self-contained, trimmed and compressed, so it runs without the
+    .NET runtime (it then checks for the runtime GitVelto itself needs). The built app (windows\out\GitVelto)
+    is embedded as payload.zip; windows\build.ps1 -Setup creates it before publishing this project.
+  -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <RootNamespace>GitVelto.Setup</RootNamespace>
+    <AssemblyName>GitVeltoSetup</AssemblyName>
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <PublishTrimmed>true</PublishTrimmed>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <UseSystemResourceKeys>true</UseSystemResourceKeys>
+    <DebugType>none</DebugType>
+    <ApplicationIcon>..\GitVelto\Assets\AppIcon.ico</ApplicationIcon>
+    <ApplicationManifest>setup.manifest</ApplicationManifest>
+  </PropertyGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="$(PayloadZip)" LogicalName="payload.zip" Condition="'$(PayloadZip)' != '' And Exists('$(PayloadZip)')" />
+  </ItemGroup>
+</Project>

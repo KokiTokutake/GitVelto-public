@@ -2,9 +2,11 @@
 #   powershell -ExecutionPolicy Bypass -File windows\build.ps1            # build only
 #   powershell -ExecutionPolicy Bypass -File windows\build.ps1 -Install   # build + install to %ProgramFiles%\GitVelto (UAC prompt)
 #   powershell -ExecutionPolicy Bypass -File windows\build.ps1 -Test      # build + unit/functional tests
+#   powershell -ExecutionPolicy Bypass -File windows\build.ps1 -Setup     # build + windows\out\GitVeltoSetup-<version>.exe
 param(
     [switch]$Install,
     [switch]$Test,
+    [switch]$Setup,
     [string]$Configuration = 'Release'
 )
 $ErrorActionPreference = 'Stop'
@@ -78,6 +80,21 @@ if ($Test) {
 }
 
 Write-Host "built: $out" -ForegroundColor Green
+
+if ($Setup) {
+    Step 'installer (GitVeltoSetup.exe, self-contained single file with the app embedded)'
+    $zip = Join-Path $here 'out\payload.zip'
+    if (Test-Path $zip) { Remove-Item $zip }
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    [System.IO.Compression.ZipFile]::CreateFromDirectory($out, $zip, [System.IO.Compression.CompressionLevel]::Optimal, $false)
+    $setupOut = Join-Path $here 'out\setup'
+    dotnet publish (Join-Path $here 'src\GitVeltoSetup\GitVeltoSetup.csproj') -c Release -r win-x64 -o $setupOut -p:PayloadZip=$zip -v q -nologo
+    if ($LASTEXITCODE -ne 0) { throw 'setup publish failed' }
+    [xml]$props = Get-Content (Join-Path $here 'Directory.Build.props')
+    $setupExe = Join-Path $here "out\GitVeltoSetup-$($props.Project.PropertyGroup.Version).exe"
+    Copy-Item (Join-Path $setupOut 'GitVeltoSetup.exe') $setupExe -Force
+    Write-Host "installer: $setupExe" -ForegroundColor Green
+}
 
 if ($Install) {
     Step 'install (administrator permission is required)'

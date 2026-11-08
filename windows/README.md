@@ -10,6 +10,8 @@ macOS 版 GitVelto（このリポジトリのルート）の Windows 版です�
 | `src/GitVelto` | GitVelto.exe。各ダイアログ (WPF)、タスクトレイ、認証ダイアログ (GIT_ASKPASS) | `Sources/App/UI`、`AppDelegate` |
 | `src/GitVeltoCache` | GitVeltoCache.exe。オーバーレイ用の状態キャッシュ (TGitCache 相当)。名前付きパイプで応答し、FileSystemWatcher で変更を監視して SHChangeNotify でエクスプローラーを更新 | `StatusService` |
 | `src/GitVeltoShell` | GitVeltoShell.dll。エクスプローラーのシェル拡張 (C++/COM)。右クリックメニューとアイコンオーバーレイ 6 種類 | `Sources/FinderSync` |
+| `src/GitVeltoSetup` | GitVeltoSetup.exe。アプリ一式を埋め込んだインストーラー（ランタイム同梱の単一ファイル） | `build.sh install` |
+| `package` | Windows 11 の右クリックメニュー用スパースパッケージのマニフェストとロゴ | — |
 | `tests/GitVelto.Tests` | xUnit。Mac 版の機能テストの移植、メニュー判定、日本語化、シェル拡張を直接読み込むテスト | `Tests/*` |
 
 - 右クリック → 操作: シェル拡張が `GitVelto.exe <操作> --pathfile <一時ファイル>` を起動します。GitVelto.exe がすでに起動していれば、名前付きパイプで要求を渡して終了します（単一インスタンス）。
@@ -23,15 +25,26 @@ macOS 版 GitVelto（このリポジトリのルート）の Windows 版です�
 - Git for Windows
 - ビルドする場合: .NET 10 SDK、Visual Studio 2026 の C++ ツール (v145)
 
-## ビルドとインストール
+## インストール
+
+`windows\out\GitVeltoSetup-<バージョン>.exe` を実行します（管理者の許可が必要）。.NET 10 デスクトップ ランタイムと Git for Windows の有無を確認してからインストールし、最後にエクスプローラーを再起動します。`/quiet` を付けると確認なしでインストールします。アンインストールは「設定 > アプリ」から行えます。
+
+## ビルド
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File windows\build.ps1            # windows\out\GitVelto にビルド
 powershell -ExecutionPolicy Bypass -File windows\build.ps1 -Test      # ビルド + テスト
-powershell -ExecutionPolicy Bypass -File windows\build.ps1 -Install   # ビルド + インストール (管理者の許可が必要)
+powershell -ExecutionPolicy Bypass -File windows\build.ps1 -Setup     # ビルド + インストーラー (windows\out\GitVeltoSetup-<バージョン>.exe)
+powershell -ExecutionPolicy Bypass -File windows\build.ps1 -Install   # ビルド + このPCにインストール (管理者の許可が必要)
 ```
 
-`-Install` は `%ProgramFiles%\GitVelto` へコピーし、シェル拡張を登録 (`regsvr32`)、スタートメニューと「アプリと機能」に登録してから、オーバーレイを読み込ませるためにエクスプローラーを再起動します。アンインストールは「アプリと機能」から、または `"%ProgramFiles%\GitVelto\install.ps1" -Uninstall`（管理者）で行えます。
+インストールでは次のことを行います（`scripts\install.ps1`）。
+
+- `%ProgramFiles%\GitVelto` にコピーし、シェル拡張を登録 (`regsvr32`)
+- Windows 11 の新しい右クリックメニュー用のスパースパッケージ (`GitVelto.msix`) を登録。署名はビルドした PC で作る自己署名証明書 (`CN=GitVelto Local Build`) で行い、インストール時にその証明書を「信頼されたユーザー」に入れます
+- スタートメニューと「アプリと機能」に登録し、オーバーレイを読み込ませるためにエクスプローラーを再起動
+
+アンインストールは「アプリと機能」から、または `"%ProgramFiles%\GitVelto\install.ps1" -Uninstall`（管理者）で行えます。
 
 ### アイコンオーバーレイについて
 
@@ -41,7 +54,7 @@ TortoiseGit と併用すると右クリックメニューに両方が表示さ�
 
 ### Windows 11 の右クリックメニュー
 
-現在はクラシックメニュー（「その他のオプションを確認」/ Shift+F10 / Shift+右クリック）に表示されます。
+最初のメニューに「GitVelto ▸」（IExplorerCommand）、「その他のオプションを確認」の中に従来のメニュー（「Git 同期…」「Git コミット…」「GitVelto ▸」）が表示されます。
 
 ## 開発
 
