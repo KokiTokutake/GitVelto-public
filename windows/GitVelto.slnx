@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/GitVelto.Core/GitVelto.Core.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/GitVelto.Tests/GitVelto.Tests.csproj" />
+  </Folder>
+</Solution>

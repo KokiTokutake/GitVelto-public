@@ -1,0 +1,9 @@
+bin/
+obj/
+out/
+*.user
+.vs/
+TestResults/
+# C++ shell extension build output
+src/GitVeltoShell/x64/
+src/GitVeltoShell/ARM64/
