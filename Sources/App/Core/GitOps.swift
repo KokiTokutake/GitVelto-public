@@ -118,6 +118,44 @@ enum GitOps {
         return .gitEnv(args, env)
     }
 
+    // MARK: - Log / reference browser context menu operations
+
+    static func revertCommit(_ c: Commit) -> [String] {
+        var args = ["revert", "--no-edit"]
+        if c.parents.count > 1 { args += ["-m", "1"] }
+        return args + [c.hash]
+    }
+
+    /// Cherry-picks oldest first. `commits` are in log order (newest first); timestamps are not used
+    /// because several commits can share the same second.
+    static func cherryPick(_ commits: [Commit]) -> [String] {
+        ["cherry-pick"] + commits.reversed().map(\.hash)
+    }
+
+    static func reset(mode: String, to hash: String) -> [String] { ["reset", "--\(mode)", hash] }
+
+    static func detach(_ hash: String) -> [String] { ["switch", "--detach", hash] }
+
+    static func deleteBranches(_ names: [String], force: Bool) -> [String] { ["branch", force ? "-D" : "-d"] + names }
+
+    static func renameBranch(_ old: String, to new: String) -> [String] { ["branch", "-m", old, new] }
+
+    static func setUpstream(_ upstream: String, for branch: String) -> [String] { ["branch", "-u", upstream, branch] }
+
+    /// "origin/feature/x" -> git push origin --delete feature/x
+    static func deleteRemoteBranches(_ refs: [String]) -> [ProgressStep] {
+        refs.compactMap { name in
+            let parts = name.split(separator: "/", maxSplits: 1).map(String.init)
+            return parts.count == 2 ? .git(["push", "--progress", parts[0], "--delete", parts[1]]) : nil
+        }
+    }
+
+    static func deleteTags(_ names: [String]) -> [String] { ["tag", "-d"] + names }
+
+    static func deleteRemoteTags(_ names: [String], remote: String) -> [String] {
+        ["push", "--progress", remote, "--delete"] + names.map { "refs/tags/\($0)" }
+    }
+
     /// Runs steps synchronously (used by tests and simple flows). Returns combined output and success.
     @discardableResult
     static func runSync(_ steps: [ProgressStep], in dir: String) -> (ok: Bool, output: String) {

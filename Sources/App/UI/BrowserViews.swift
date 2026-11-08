@@ -110,12 +110,12 @@ struct RefBrowserView: View {
             if r.kind == .local {
                 Button("名前を変更…") {
                     if let n = WindowManager.prompt("ブランチ名を変更", info: r.name, defaultValue: r.name), !n.isEmpty, n != r.name {
-                        run("名前を変更", [.git(["branch", "-m", r.name, n])])
+                        run("名前を変更", [.git(GitOps.renameBranch(r.name, to: n))])
                     }
                 }
                 Button("上流ブランチを設定…") {
                     if let n = WindowManager.prompt("上流ブランチ (例: origin/\(r.name))", defaultValue: r.upstream.isEmpty ? "origin/\(r.name)" : r.upstream), !n.isEmpty {
-                        run("上流ブランチを設定", [.git(["branch", "-u", n, r.name])])
+                        run("上流ブランチを設定", [.git(GitOps.setUpstream(n, for: r.name))])
                     }
                 }
             }
@@ -129,10 +129,10 @@ struct RefBrowserView: View {
         if !locals.isEmpty {
             Button("ブランチを削除 (\(locals.count))") {
                 guard WindowManager.confirm("\(locals.map(\.name).joined(separator: ", ")) を削除しますか?", ok: "削除", destructive: true) else { return }
-                let r = repo.git(["branch", "-d"] + locals.map(\.name))
+                let r = repo.git(GitOps.deleteBranches(locals.map(\.name), force: false))
                 if !r.ok {
                     if WindowManager.confirm("マージされていないブランチがあります", info: r.message + "\n\n強制的に削除しますか?", ok: "強制削除", destructive: true) {
-                        repo.git(["branch", "-D"] + locals.map(\.name))
+                        repo.git(GitOps.deleteBranches(locals.map(\.name), force: true))
                     }
                 }
                 load()
@@ -141,23 +141,19 @@ struct RefBrowserView: View {
         if !remotes.isEmpty {
             Button("リモートブランチを削除 (\(remotes.count))") {
                 guard WindowManager.confirm("リモートから \(remotes.map(\.name).joined(separator: ", ")) を削除しますか?", info: "サーバー上のブランチが削除されます。", ok: "削除", destructive: true) else { return }
-                var steps: [ProgressStep] = []
-                for r in remotes {
-                    let parts = r.name.split(separator: "/", maxSplits: 1).map(String.init)
-                    if parts.count == 2 { steps.append(.git(["push", "--progress", parts[0], "--delete", parts[1]])) }
-                }
+                let steps = GitOps.deleteRemoteBranches(remotes.map(\.name))
                 run("リモートブランチを削除", steps)
             }
         }
         if !tags.isEmpty {
             Button("タグを削除 (\(tags.count))") {
                 guard WindowManager.confirm("タグ \(tags.map(\.name).joined(separator: ", ")) を削除しますか?", ok: "削除", destructive: true) else { return }
-                run("タグを削除", [.git(["tag", "-d"] + tags.map(\.name))])
+                run("タグを削除", [.git(GitOps.deleteTags(tags.map(\.name)))])
             }
             if let remote = firstRemote {
                 Button("タグをリモートからも削除 (\(remote))") {
                     guard WindowManager.confirm("\(remote) からタグ \(tags.map(\.name).joined(separator: ", ")) を削除しますか?", ok: "削除", destructive: true) else { return }
-                    run("リモートのタグを削除", [.git(["push", "--progress", remote, "--delete"] + tags.map { "refs/tags/\($0.name)" })])
+                    run("リモートのタグを削除", [.git(GitOps.deleteRemoteTags(tags.map(\.name), remote: remote))])
                 }
                 Button("タグをプッシュ (\(remote))") {
                     run("タグをプッシュ", [.git(["push", "--progress", remote] + tags.map { "refs/tags/\($0.name)" })])

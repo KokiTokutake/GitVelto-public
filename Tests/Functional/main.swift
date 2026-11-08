@@ -50,6 +50,12 @@ check(graph.count == commits.count && graph.allSatisfy { $0.node >= 0 }, "graph 
 check(work.commits(range: "main..origin/main").count == 1, "incoming = 1")
 check(work.commits(range: "origin/main..main").count == 2, "outgoing = 2")
 
+if let blob = work.exportBlob(rev: "v1.0", path: "src/main.swift"),
+   let txt = try? String(contentsOfFile: blob, encoding: .utf8) {
+    check(txt.contains("print(\"hello\")"), "export blob at v1.0 (repo browser open)")
+} else { check(false, "export blob at v1.0 (repo browser open)") }
+check(GitMessages.translate(line: "hint: To restore the original branch and stop patching, run \"git am --abort\".").contains("中止"), "am abort hint")
+
 print("■ conflict parser")
 let text = (try? String(contentsOfFile: conflict.root + "/src/main.swift", encoding: .utf8)) ?? ""
 let segs = ConflictParser.parse(text)
@@ -159,6 +165,32 @@ let r9 = GitOps.runSync([.git(["push", "--progress", "origin", "main:main"])], i
 check(r9.ok, "push ok", r9.output)
 let r10 = GitOps.runSync([.git(["pull", "--progress", "--no-rebase", "origin", "main"])], in: base + "/other")
 check(r10.ok && sh("git log -1 --format=%s", base + "/other") == "Merge topic", "pull ok", r10.output)
+
+print("■ log / reference browser context menu operations")
+sh("git switch -q -c ctx-test main && printf 'ctx\n' > ctx.txt && git add ctx.txt && git commit -qm 'ctx 追加' && printf 'ctx2\n' >> ctx.txt && git commit -qam 'ctx 更新' && git switch -q main && git commit -q --allow-empty -m 'main を進める'", work.root)
+let ctxCommits = work.commits(range: "main..ctx-test")
+check(ctxCommits.count == 2, "prepared 2 commits on ctx-test")
+let rcp = GitOps.runSync([.git(GitOps.cherryPick(ctxCommits))], in: work.root)
+check(rcp.ok && sh("cat ctx.txt", work.root) == "ctx\nctx2", "cherry-pick 2 commits in order", rcp.output)
+let head = work.log(limit: 1)[0]
+let rrv = GitOps.runSync([.git(GitOps.revertCommit(head))], in: work.root)
+check(rrv.ok && sh("cat ctx.txt", work.root) == "ctx", "revert last commit", rrv.output)
+let mergeCommit = work.log(limit: 50).first { $0.parents.count > 1 }!
+let rrm = GitOps.runSync([.git(GitOps.revertCommit(mergeCommit))], in: work.root)
+check(rrm.ok, "revert merge commit (-m 1)", rrm.output)
+let before = sh("git rev-parse HEAD~2", work.root)
+let rrs = GitOps.runSync([.git(GitOps.reset(mode: "hard", to: before))], in: work.root)
+check(rrs.ok && sh("git rev-parse HEAD", work.root) == before, "reset --hard", rrs.output)
+let rdt = GitOps.runSync([.git(GitOps.detach(before))], in: work.root)
+check(rdt.ok && work.currentBranch() == nil, "switch --detach", rdt.output)
+sh("git switch -q main", work.root)
+check(!GitOps.runSync([.git(GitOps.deleteBranches(["ctx-test"], force: false))], in: work.root).ok, "unmerged branch delete refused (-d)")
+check(GitOps.runSync([.git(GitOps.renameBranch("ctx-test", to: "ctx-renamed"))], in: work.root).ok && sh("git branch --list ctx-renamed", work.root).contains("ctx-renamed"), "rename branch")
+check(GitOps.runSync([.git(GitOps.setUpstream("origin/main", for: "ctx-renamed"))], in: work.root).ok && work.upstream(of: "ctx-renamed")?.branch == "main", "set upstream")
+check(GitOps.runSync([.git(GitOps.deleteBranches(["ctx-renamed"], force: true))], in: work.root).ok, "force delete branch (-D)")
+sh("git push -q origin main:refs/heads/tmp-remote 2>/dev/null; git tag tmp-tag && git push -q origin tmp-tag 2>/dev/null; git fetch -q origin", work.root)
+check(GitOps.runSync(GitOps.deleteRemoteBranches(["origin/tmp-remote"]), in: work.root).ok && !sh("git ls-remote --heads origin", work.root).contains("tmp-remote"), "delete remote branch")
+check(GitOps.runSync([.git(GitOps.deleteRemoteTags(["tmp-tag"], remote: "origin")), .git(GitOps.deleteTags(["tmp-tag"]))], in: work.root).ok && !sh("git ls-remote --tags origin", work.root).contains("tmp-tag") && sh("git tag --list tmp-tag", work.root).isEmpty, "delete tag locally and on remote")
 
 print("■ archive / patch")
 let r11 = GitOps.runSync([.git(["archive", "--format=zip", "-o", base + "/out.zip", "HEAD"])], in: work.root)

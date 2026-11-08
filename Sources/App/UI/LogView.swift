@@ -433,7 +433,7 @@ struct LogView: View {
         let sel = model.multi.contains(c.hash) ? model.selectedCommits : [c]
         if sel.count == 2 {
             Button("選択した 2 つのコミットを比較") {
-                let ordered = sel.sorted { $0.date < $1.date }
+                let ordered = Array(sel.reversed()) // log order is newest first
                 let files = repo.changedFiles(from: ordered[0].hash, to: ordered[1].hash)
                 WindowManager.shared.show("GitVelto - \(ordered[0].short) ↔ \(ordered[1].short)", size: NSSize(width: 640, height: 480)) { _ in
                     ChangedFilesView(repo: repo, files: files, from: ordered[0].hash, to: ordered[1].hash)
@@ -446,9 +446,8 @@ struct LogView: View {
                 WindowManager.shared.show("GitVelto - パッチを作成", size: NSSize(width: 520, height: 360)) { _ in CreatePatchView(repo: repo, commits: hashes) }
             }
             Button("選択した \(sel.count) コミットをチェリーピック") {
-                let hashes = sel.sorted { $0.date < $1.date }.map(\.hash)
                 if WindowManager.confirm("\(sel.count) 個のコミットを現在のブランチにチェリーピックしますか?") {
-                    WindowManager.shared.runProgress("チェリーピック", dir: repo.root, steps: [.git(["cherry-pick"] + hashes)]) { _ in model.reload() }
+                    WindowManager.shared.runProgress("チェリーピック", dir: repo.root, steps: [.git(GitOps.cherryPick(sel))]) { _ in model.reload() }
                 }
             }
             Divider()
@@ -468,7 +467,7 @@ struct LogView: View {
         }
         Button("このコミットに切り替え (HEAD 切り離し)") {
             if WindowManager.confirm("\(c.short) をチェックアウトしますか?", info: "HEAD が切り離された状態になります。") {
-                WindowManager.shared.runProgress("チェックアウト", dir: repo.root, steps: [.git(["switch", "--detach", c.hash])]) { _ in model.reload() }
+                WindowManager.shared.runProgress("チェックアウト", dir: repo.root, steps: [.git(GitOps.detach(c.hash))]) { _ in model.reload() }
             }
         }
         Button("このコミットまでリセット…") {
@@ -479,14 +478,12 @@ struct LogView: View {
         Divider()
         Button("このコミットを打ち消す (revert)") {
             if WindowManager.confirm("\(c.short) を打ち消すコミットを作成しますか?", info: c.subject) {
-                var args = ["revert", "--no-edit"]
-                if c.parents.count > 1 { args += ["-m", "1"] }
-                WindowManager.shared.runProgress("リバート", dir: repo.root, steps: [.git(args + [c.hash])]) { _ in model.reload() }
+                WindowManager.shared.runProgress("リバート", dir: repo.root, steps: [.git(GitOps.revertCommit(c))]) { _ in model.reload() }
             }
         }
         Button("チェリーピック") {
             if WindowManager.confirm("\(c.short) を現在のブランチにチェリーピックしますか?", info: c.subject) {
-                WindowManager.shared.runProgress("チェリーピック", dir: repo.root, steps: [.git(["cherry-pick", c.hash])]) { _ in model.reload() }
+                WindowManager.shared.runProgress("チェリーピック", dir: repo.root, steps: [.git(GitOps.cherryPick([c]))]) { _ in model.reload() }
             }
         }
         Button("現在のブランチをこのコミットへリベース…") {
@@ -641,7 +638,7 @@ struct ResetView: View {
                 Button("キャンセル") { handle.close() }.keyboardShortcut(.cancelAction)
                 Button("リセット") {
                     if mode == "hard" && !WindowManager.confirm("ハードリセットしますか?", info: "コミットされていない変更はすべて失われます。", ok: "リセット", destructive: true) { return }
-                    WindowManager.shared.runProgress("リセット", dir: repo.root, steps: [.git(["reset", "--\(mode)", commit.hash])]) { _ in onDone() }
+                    WindowManager.shared.runProgress("リセット", dir: repo.root, steps: [.git(GitOps.reset(mode: mode, to: commit.hash))]) { _ in onDone() }
                     handle.close()
                 }.keyboardShortcut(.defaultAction)
             }

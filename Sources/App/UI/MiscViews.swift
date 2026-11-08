@@ -139,6 +139,8 @@ struct BlameCommit {
     var author = ""
     var time = Date()
     var summary = ""
+    /// Path of the file in that commit (differs from the current path after renames).
+    var filename = ""
 }
 
 struct BlameView: View {
@@ -171,7 +173,9 @@ struct BlameView: View {
                         }
                     }
                     Button("この行より前の Blame") {
-                        let repo = repo, p = path
+                        let repo = repo
+                        let original = commits[h]?.filename ?? ""
+                        let p = original.isEmpty ? path : repo.absolute(original)
                         WindowManager.shared.show("GitVelto - Blame - \(h.prefix(8))^", size: NSSize(width: 1000, height: 720)) { _ in
                             BlameView(repo: repo, path: p, revision: "\(h)^")
                         }
@@ -234,6 +238,8 @@ struct BlameView: View {
                 info[current]?.time = Date(timeIntervalSince1970: TimeInterval(line.dropFirst(12)) ?? 0)
             } else if line.hasPrefix("summary ") {
                 info[current]?.summary = String(line.dropFirst(8))
+            } else if line.hasPrefix("filename ") {
+                info[current]?.filename = String(line.dropFirst(9))
             }
         }
         lines = out
