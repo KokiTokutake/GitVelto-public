@@ -234,7 +234,7 @@ final class FinderSync: FIFinderSync {
         let mi = NSMenuItem(title: title ?? action.title, action: #selector(menuAction(_:)), keyEquivalent: "")
         // Finder copies the menu; only `tag` survives the round-trip reliably.
         mi.tag = GitAction.allCases.firstIndex(of: action) ?? 0
-        mi.image = NSImage(systemSymbolName: action.symbol, accessibilityDescription: nil)
+        mi.image = BadgeImages.menuSymbol(action.symbol)
         return mi
     }
 
@@ -259,8 +259,42 @@ final class FinderSync: FIFinderSync {
 /// Renders overlay badge bitmaps (no asset catalog needed).
 enum BadgeImages {
     /// Small app-like icon for the "GitVelto" submenu.
-    static func menuIcon() -> NSImage? {
-        NSImage(systemSymbolName: "arrow.triangle.branch", accessibilityDescription: "GitVelto")
+    static func menuIcon() -> NSImage? { menuSymbol("arrow.triangle.branch") }
+
+    /// Whether the system is currently in Dark Mode (the extension has no NSApp appearance of its own).
+    static var isDarkMode: Bool {
+        if let app = NSApp {
+            return app.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+        }
+        return UserDefaults.standard.string(forKey: "AppleInterfaceStyle")?.lowercased() == "dark"
+    }
+
+    /// Menu icon rendered as a bitmap in a color that suits the current appearance.
+    /// Finder copies menus from the extension and drops the template flag of images, so SF Symbols
+    /// would otherwise be drawn black on the dark menu background.
+    static func menuSymbol(_ name: String) -> NSImage? {
+        let dark = isDarkMode
+        let color = dark ? NSColor(white: 0.92, alpha: 1) : NSColor(white: 0.12, alpha: 1)
+        let cfg = NSImage.SymbolConfiguration(pointSize: 13, weight: .regular)
+            .applying(NSImage.SymbolConfiguration(paletteColors: [color]))
+        guard let sym = NSImage(systemSymbolName: name, accessibilityDescription: nil)?.withSymbolConfiguration(cfg) else { return nil }
+        let size = NSSize(width: 16, height: 16)
+        let scale: CGFloat = 2
+        guard let rep = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: Int(size.width * scale), pixelsHigh: Int(size.height * scale),
+                                         bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
+                                         colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0) else { return sym }
+        rep.size = size
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)
+        let s = sym.size
+        let fit = min(size.width / max(s.width, 1), size.height / max(s.height, 1), 1)
+        let w = s.width * fit, h = s.height * fit
+        sym.draw(in: NSRect(x: (size.width - w) / 2, y: (size.height - h) / 2, width: w, height: h))
+        NSGraphicsContext.restoreGraphicsState()
+        let img = NSImage(size: size)
+        img.addRepresentation(rep)
+        img.isTemplate = false
+        return img
     }
 
     static func registerAll() {
