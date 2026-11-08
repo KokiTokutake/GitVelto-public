@@ -31,8 +31,30 @@ function Move-Locked($path) {
     catch { Rename-Item $path ("{0}.old-{1}" -f (Split-Path $path -Leaf), [DateTime]::Now.Ticks) -Force }
 }
 
+$packageName = 'GitVelto.ShellExtension'
+
+# Windows 11 compact context menu: trust the package certificate and register the sparse package
+# (its files are the install folder itself).
+function Register-Package {
+    $msix = Join-Path $target 'GitVelto.msix'
+    $cer = Join-Path $target 'GitVelto-package.cer'
+    if (-not (Test-Path $msix) -or -not (Test-Path $cer)) { return }
+    try {
+        Import-Certificate -FilePath $cer -CertStoreLocation Cert:\LocalMachine\TrustedPeople | Out-Null
+        Get-AppxPackage -Name $packageName | Remove-AppxPackage -ErrorAction SilentlyContinue
+        Add-AppxPackage -Path $msix -ExternalLocation $target
+    }
+    catch { Write-Warning "Windows 11 context menu not registered: $($_.Exception.Message)" }
+}
+
+function Unregister-Package {
+    Get-AppxPackage -Name $packageName | Remove-AppxPackage -ErrorAction SilentlyContinue
+    Get-ChildItem Cert:\LocalMachine\TrustedPeople | Where-Object { $_.Subject -eq 'CN=GitVelto Local Build' } | Remove-Item -ErrorAction SilentlyContinue
+}
+
 if ($Uninstall) {
     Stop-GitVelto
+    Unregister-Package
     $dll = Join-Path $target 'GitVeltoShell.dll'
     if (Test-Path $dll) { Start-Process regsvr32.exe -ArgumentList '/s', '/u', "`"$dll`"" -Wait }
     Remove-Item $startMenu -ErrorAction SilentlyContinue
@@ -54,6 +76,7 @@ Copy-Item (Join-Path $Source '*') $target -Recurse -Force
 $dll = Join-Path $target 'GitVeltoShell.dll'
 $p = Start-Process regsvr32.exe -ArgumentList '/s', "`"$dll`"" -Wait -PassThru
 if ($p.ExitCode -ne 0) { throw "regsvr32 failed ($($p.ExitCode))" }
+Register-Package
 
 # Start menu shortcut
 $shell = New-Object -ComObject WScript.Shell

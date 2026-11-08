@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Sparse package: gives GitVelto a package identity so that the Windows 11 compact context menu
+  can show "GitVelto ▸" (IExplorerCommand in GitVeltoShell.dll). The files themselves stay in the
+  install folder (external location). Built and signed by windows/build.ps1, registered by install.ps1.
+  $(VERSION) and $(PUBLISHER) are replaced by build.ps1.
+-->
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:uap10="http://schemas.microsoft.com/appx/manifest/uap/windows10/10"
+  xmlns:desktop4="http://schemas.microsoft.com/appx/manifest/desktop/windows10/4"
+  xmlns:desktop5="http://schemas.microsoft.com/appx/manifest/desktop/windows10/5"
+  xmlns:com="http://schemas.microsoft.com/appx/manifest/com/windows10"
+  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+  IgnorableNamespaces="uap uap10 desktop4 desktop5 com rescap">
+
+  <Identity Name="GitVelto.ShellExtension" Publisher="$(PUBLISHER)" Version="$(VERSION)" ProcessorArchitecture="x64" />
+
+  <Properties>
+    <DisplayName>GitVelto</DisplayName>
+    <PublisherDisplayName>GitVelto</PublisherDisplayName>
+    <Logo>Assets\StoreLogo.png</Logo>
+    <uap10:AllowExternalContent>true</uap10:AllowExternalContent>
+  </Properties>
+
+  <Resources>
+    <Resource Language="ja-jp" />
+  </Resources>
+
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.19041.0" MaxVersionTested="10.0.26100.0" />
+  </Dependencies>
+
+  <Capabilities>
+    <rescap:Capability Name="runFullTrust" />
+  </Capabilities>
+
+  <Applications>
+    <Application Id="GitVelto" Executable="GitVelto.exe" uap10:TrustLevel="mediumIL" uap10:RuntimeBehavior="win32App">
+      <uap:VisualElements AppListEntry="none" DisplayName="GitVelto" Description="エクスプローラーに統合された Git クライアント"
+        BackgroundColor="transparent" Square150x150Logo="Assets\Square150x150Logo.png" Square44x44Logo="Assets\Square44x44Logo.png" />
+      <Extensions>
+        <desktop4:Extension Category="windows.fileExplorerContextMenus">
+          <desktop4:FileExplorerContextMenus>
+            <desktop5:ItemType Type="*">
+              <desktop5:Verb Id="GitVelto" Clsid="6E7A9B2C-3F1D-4C8E-9A51-7D2B0C4E8F20" />
+            </desktop5:ItemType>
+            <desktop5:ItemType Type="Directory">
+              <desktop5:Verb Id="GitVelto" Clsid="6E7A9B2C-3F1D-4C8E-9A51-7D2B0C4E8F20" />
+            </desktop5:ItemType>
+            <desktop5:ItemType Type="Directory\Background">
+              <desktop5:Verb Id="GitVelto" Clsid="6E7A9B2C-3F1D-4C8E-9A51-7D2B0C4E8F20" />
+            </desktop5:ItemType>
+          </desktop4:FileExplorerContextMenus>
+        </desktop4:Extension>
+        <com:Extension Category="windows.comServer">
+          <com:ComServer>
+            <com:SurrogateServer DisplayName="GitVelto Shell Extension">
+              <com:Class Id="6E7A9B2C-3F1D-4C8E-9A51-7D2B0C4E8F20" Path="GitVeltoShell.dll" ThreadingModel="STA" />
+            </com:SurrogateServer>
+          </com:ComServer>
+        </com:Extension>
+      </Extensions>
+    </Application>
+  </Applications>
+</Package>

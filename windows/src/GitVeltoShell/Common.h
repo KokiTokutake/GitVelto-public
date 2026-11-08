@@ -23,6 +23,8 @@ inline void DllRelease() { InterlockedDecrement(&g_cDllRef); }
 // {6E7A9B2C-3F1D-4C8E-9A51-7D2B0C4E8F10} context menu
 // {6E7A9B2C-3F1D-4C8E-9A51-7D2B0C4E8F11..16} overlays: normal, modified, added, conflict, untracked, ignored
 extern const CLSID CLSID_GitVeltoContextMenu;
+// {6E7A9B2C-3F1D-4C8E-9A51-7D2B0C4E8F20} Windows 11 context menu (IExplorerCommand, see windows/package/AppxManifest.xml)
+extern const CLSID CLSID_GitVeltoExplorerCommand;
 extern const CLSID CLSID_GitVeltoOverlay[6];
 
 enum class Badge : int { None = -1, Normal = 0, Modified = 1, Added = 2, Conflict = 3, Untracked = 4, Ignored = 5 };

@@ -36,6 +36,37 @@ New-Item -ItemType Directory -Force (Join-Path $out 'overlays') | Out-Null
 Copy-Item (Join-Path $here 'src\GitVelto\Assets\overlays\*.ico') (Join-Path $out 'overlays')
 New-Item -ItemType Directory -Force (Join-Path $out 'menuicons') | Out-Null
 Copy-Item (Join-Path $here 'src\GitVelto\Assets\menuicons\*.ico') (Join-Path $out 'menuicons')
+Step 'sparse package for the Windows 11 context menu'
+$kit = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\makeappx.exe" -ErrorAction SilentlyContinue | Sort-Object FullName -Descending | Select-Object -First 1
+if ($kit) {
+    $makeappx = $kit.FullName
+    $signtool = Join-Path $kit.DirectoryName 'signtool.exe'
+    # Self-signed code signing certificate of this PC (created once, kept in the current user's store).
+    $subject = 'CN=GitVelto Local Build'
+    $cert = Get-ChildItem Cert:\CurrentUser\My | Where-Object { $_.Subject -eq $subject -and $_.NotAfter -gt (Get-Date).AddDays(30) } | Select-Object -First 1
+    if (-not $cert) {
+        $cert = New-SelfSignedCertificate -Type Custom -Subject $subject -KeyUsage DigitalSignature -FriendlyName 'GitVelto package signing' `
+            -CertStoreLocation Cert:\CurrentUser\My -NotAfter (Get-Date).AddYears(5) `
+            -TextExtension @('2.5.29.37={text}1.3.6.1.5.5.7.3.3', '2.5.29.19={text}')
+    }
+    $stage = Join-Path $here 'out\package'
+    if (Test-Path $stage) { Remove-Item -Recurse -Force $stage }
+    New-Item -ItemType Directory -Force (Join-Path $stage 'Assets') | Out-Null
+    Copy-Item (Join-Path $here 'package\Assets\*.png') (Join-Path $stage 'Assets')
+    [xml]$props = Get-Content (Join-Path $here 'Directory.Build.props')
+    $version = "$($props.Project.PropertyGroup.Version).0"
+    $manifest = (Get-Content (Join-Path $here 'package\AppxManifest.xml') -Raw -Encoding utf8).Replace('$(PUBLISHER)', $cert.Subject).Replace('$(VERSION)', $version)
+    [IO.File]::WriteAllText((Join-Path $stage 'AppxManifest.xml'), $manifest, (New-Object Text.UTF8Encoding $false))
+    $msix = Join-Path $out 'GitVelto.msix'
+    & $makeappx pack /d $stage /p $msix /nv /o | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw 'makeappx failed' }
+    & $signtool sign /q /fd SHA256 /sha1 $cert.Thumbprint /s My $msix
+    if ($LASTEXITCODE -ne 0) { throw 'signtool failed' }
+    Export-Certificate -Cert $cert -FilePath (Join-Path $out 'GitVelto-package.cer') | Out-Null
+} else {
+    Write-Warning 'Windows SDK (makeappx) not found: the Windows 11 compact context menu will not be available.'
+}
+
 Copy-Item (Join-Path $here 'scripts\register-shell.ps1') $out
 Copy-Item (Join-Path $here 'scripts\install.ps1') $out
 Get-ChildItem $out -Filter *.pdb | Remove-Item

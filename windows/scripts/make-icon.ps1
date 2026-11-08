@@ -45,5 +45,19 @@ try {
     $w.Flush()
     [System.IO.File]::WriteAllBytes((Join-Path $outDir 'AppIcon.ico'), $ico.ToArray())
     Write-Output "wrote $outDir\AppIcon.ico"
+
+    # Logos of the sparse package (Windows 11 context menu registration)
+    $pkgAssets = Join-Path $root 'windows\package\Assets'
+    New-Item -ItemType Directory -Force $pkgAssets | Out-Null
+    foreach ($logo in @(@('Square44x44Logo.png', 44), @('Square150x150Logo.png', 150), @('StoreLogo.png', 50))) {
+        $s = $logo[1]
+        $bmp = New-Object System.Drawing.Bitmap $s, $s
+        $g = [System.Drawing.Graphics]::FromImage($bmp)
+        $g.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+        $g.DrawImage($master, 0, 0, $s, $s)
+        $g.Dispose()
+        $bmp.Save((Join-Path $pkgAssets $logo[0]), [System.Drawing.Imaging.ImageFormat]::Png)
+        $bmp.Dispose()
+    }
 }
 finally { $master.Dispose() }

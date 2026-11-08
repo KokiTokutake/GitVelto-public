@@ -54,6 +54,7 @@
     <ClCompile Include="Common.cpp" />
     <ClCompile Include="ContextMenu.cpp" />
     <ClCompile Include="dllmain.cpp" />
+    <ClCompile Include="ExplorerCommand.cpp" />
     <ClCompile Include="MenuPlanner.cpp" />
     <ClCompile Include="Overlay.cpp" />
   </ItemGroup>

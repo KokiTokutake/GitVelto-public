@@ -35,7 +35,12 @@ IFACEMETHODIMP ClassFactory::CreateInstance(IUnknown* pUnkOuter, REFIID riid, vo
     *ppv = nullptr;
     if (pUnkOuter) return CLASS_E_NOAGGREGATION;
     HRESULT hr;
-    if (m_kind < 0) {
+    if (m_kind == -3) {
+        auto* p = new (std::nothrow) ExplorerCommandRoot();
+        if (!p) return E_OUTOFMEMORY;
+        hr = p->QueryInterface(riid, ppv);
+        p->Release();
+    } else if (m_kind < 0) {
         auto* p = new (std::nothrow) ContextMenuHandler();
         if (!p) return E_OUTOFMEMORY;
         hr = p->QueryInterface(riid, ppv);
@@ -58,6 +63,7 @@ STDAPI DllGetClassObject(REFCLSID rclsid, REFIID riid, void** ppv) {
     *ppv = nullptr;
     int kind = -2;
     if (IsEqualCLSID(rclsid, CLSID_GitVeltoContextMenu)) kind = -1;
+    if (IsEqualCLSID(rclsid, CLSID_GitVeltoExplorerCommand)) kind = -3;
     for (int i = 0; i < 6; i++) if (IsEqualCLSID(rclsid, CLSID_GitVeltoOverlay[i])) kind = i;
     if (kind == -2) return CLASS_E_CLASSNOTAVAILABLE;
     auto* f = new (std::nothrow) ClassFactory(kind);

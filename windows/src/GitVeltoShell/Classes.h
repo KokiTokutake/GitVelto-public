@@ -44,9 +44,30 @@ private:
     std::vector<MenuEntry> m_entries;
 };
 
+// Windows 11 compact context menu ("GitVelto ▸"), registered by the sparse package.
+class ExplorerCommandRoot : public IExplorerCommand {
+public:
+    ExplorerCommandRoot();
+    IFACEMETHODIMP QueryInterface(REFIID riid, void** ppv) override;
+    IFACEMETHODIMP_(ULONG) AddRef() override;
+    IFACEMETHODIMP_(ULONG) Release() override;
+    IFACEMETHODIMP GetTitle(IShellItemArray* items, PWSTR* name) override;
+    IFACEMETHODIMP GetIcon(IShellItemArray* items, PWSTR* icon) override;
+    IFACEMETHODIMP GetToolTip(IShellItemArray* items, PWSTR* tip) override;
+    IFACEMETHODIMP GetCanonicalName(GUID* guid) override;
+    IFACEMETHODIMP GetState(IShellItemArray* items, BOOL okToBeSlow, EXPCMDSTATE* state) override;
+    IFACEMETHODIMP Invoke(IShellItemArray* items, IBindCtx* bind) override;
+    IFACEMETHODIMP GetFlags(EXPCMDFLAGS* flags) override;
+    IFACEMETHODIMP EnumSubCommands(IEnumExplorerCommand** e) override;
+private:
+    ~ExplorerCommandRoot();
+    LONG m_ref;
+    std::vector<MenuEntry> m_entries;
+};
+
 class ClassFactory : public IClassFactory {
 public:
-    explicit ClassFactory(int kind); // -1 = context menu, 0..5 = overlay kinds
+    explicit ClassFactory(int kind); // -1 = context menu, -3 = Windows 11 explorer command, 0..5 = overlay kinds
     IFACEMETHODIMP QueryInterface(REFIID riid, void** ppv) override;
     IFACEMETHODIMP_(ULONG) AddRef() override;
     IFACEMETHODIMP_(ULONG) Release() override;
@@ -76,3 +97,7 @@ struct MenuContext {
 };
 
 std::vector<MenuEntry> PlanMenu(const MenuContext& c, const MenuConfig& cfg);
+// Menu entries for an Explorer selection (empty = show nothing).
+std::vector<MenuEntry> PlanForPaths(const std::vector<std::wstring>& paths);
+// Starts GitVelto.exe <action> with the paths (via a temporary path list file).
+HRESULT LaunchAction(const wchar_t* action, const std::vector<std::wstring>& paths, HWND owner);

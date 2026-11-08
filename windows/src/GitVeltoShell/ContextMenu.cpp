@@ -106,32 +106,79 @@ static HBITMAP MenuIcon(const std::wstring& id) {
     return bmp;
 }
 
-IFACEMETHODIMP ContextMenuHandler::QueryContextMenu(HMENU hmenu, UINT indexMenu, UINT idCmdFirst, UINT idCmdLast, UINT uFlags) {
-    if (uFlags & CMF_DEFAULTONLY) return MAKE_HRESULT(SEVERITY_SUCCESS, FACILITY_NULL, 0);
-    if (m_paths.empty()) return MAKE_HRESULT(SEVERITY_SUCCESS, FACILITY_NULL, 0);
+std::vector<MenuEntry> PlanForPaths(const std::vector<std::wstring>& paths) {
+    if (paths.empty()) return {};
     // Local paths only (skip libraries / virtual folders).
-    for (auto& p : m_paths)
-        if (p.size() < 2 || (p[1] != L':' && p.rfind(L"\\\\", 0) != 0)) return MAKE_HRESULT(SEVERITY_SUCCESS, FACILITY_NULL, 0);
+    for (auto& p : paths)
+        if (p.size() < 2 || (p[1] != L':' && p.rfind(L"\\\\", 0) != 0)) return {};
 
     MenuContext ctx;
-    ctx.targetCount = (int)m_paths.size();
+    ctx.targetCount = (int)paths.size();
     std::vector<std::optional<std::wstring>> roots;
     ctx.inRepo = true;
-    for (auto& p : m_paths) {
+    for (auto& p : paths) {
         if (IsDirectory(p)) ctx.anyDir = true;
         auto r = FindRepoRoot(p);
         if (!r) ctx.inRepo = false;
         roots.push_back(r);
     }
-    for (auto& p : m_paths) ctx.states.push_back(ctx.inRepo ? QueryItem(p) : Badge::None);
-    ctx.isRoot = m_paths.size() == 1 && roots[0] && _wcsicmp(roots[0]->c_str(), m_paths[0].c_str()) == 0;
+    for (auto& p : paths) ctx.states.push_back(ctx.inRepo ? QueryItem(p) : Badge::None);
+    ctx.isRoot = paths.size() == 1 && roots[0] && _wcsicmp(roots[0]->c_str(), paths[0].c_str()) == 0;
     if (ctx.inRepo && roots[0]) {
         auto gd = GitDirOf(*roots[0]);
         ctx.bisecting = gd && Exists(*gd + L"\\BISECT_LOG");
         ctx.hasSubmodules = Exists(*roots[0] + L"\\.gitmodules");
         ctx.branch = BranchName(*roots[0]);
     }
-    m_entries = PlanMenu(ctx, LoadMenuConfig());
+    return PlanMenu(ctx, LoadMenuConfig());
+}
+
+static std::wstring TempPathFile() {
+    wchar_t tmp[MAX_PATH];
+    GetTempPathW(MAX_PATH, tmp);
+    std::wstring dir = std::wstring(tmp) + L"GitVelto";
+    CreateDirectoryW(dir.c_str(), nullptr);
+    wchar_t name[64];
+    swprintf_s(name, L"\\paths-%lu-%llu.txt", GetCurrentProcessId(), GetTickCount64());
+    return dir + name;
+}
+
+HRESULT LaunchAction(const wchar_t* action, const std::vector<std::wstring>& paths, HWND owner) {
+    // Paths go through a UTF-8 file: no command line length limit, no quoting issues.
+    std::wstring file = TempPathFile();
+    std::string content;
+    for (auto& p : paths) content += ToUtf8(p) + "\n";
+    HANDLE h = CreateFileW(file.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_TEMPORARY, nullptr);
+    if (h == INVALID_HANDLE_VALUE) return E_FAIL;
+    DWORD written = 0;
+    WriteFile(h, content.data(), (DWORD)content.size(), &written, nullptr);
+    CloseHandle(h);
+
+    std::wstring exe = ModuleDir() + L"\\GitVelto.exe";
+    std::wstring cmd = L"\"" + exe + L"\" " + action + L" --pathfile \"" + file + L"\" --deletepathfile";
+    std::vector<wchar_t> buf(cmd.begin(), cmd.end());
+    buf.push_back(0);
+    std::wstring cwd = paths.empty() ? L"" : IsDirectory(paths[0]) ? paths[0] : ParentDir(paths[0]);
+    STARTUPINFOW si{ sizeof(si) };
+    PROCESS_INFORMATION pi{};
+    AllowSetForegroundWindow(ASFW_ANY);
+    if (!CreateProcessW(exe.c_str(), buf.data(), nullptr, nullptr, FALSE, 0, nullptr, cwd.empty() ? nullptr : cwd.c_str(), &si, &pi)) {
+        HRESULT hr = HRESULT_FROM_WIN32(GetLastError());
+        std::wstring msg = L"GitVelto.exe を起動できません。\n" + exe;
+        MessageBoxW(owner, msg.c_str(), L"GitVelto", MB_ICONERROR);
+        DeleteFileW(file.c_str());
+        return hr;
+    }
+    CloseHandle(pi.hThread);
+    CloseHandle(pi.hProcess);
+    return S_OK;
+}
+
+IFACEMETHODIMP ContextMenuHandler::QueryContextMenu(HMENU hmenu, UINT indexMenu, UINT idCmdFirst, UINT idCmdLast, UINT uFlags) {
+    if (uFlags & CMF_DEFAULTONLY) return MAKE_HRESULT(SEVERITY_SUCCESS, FACILITY_NULL, 0);
+    if (m_paths.empty()) return MAKE_HRESULT(SEVERITY_SUCCESS, FACILITY_NULL, 0);
+    m_entries = PlanForPaths(m_paths);
+    if (m_entries.empty()) return MAKE_HRESULT(SEVERITY_SUCCESS, FACILITY_NULL, 0);
 
     UINT pos = indexMenu;
     UINT maxId = 0;
@@ -180,49 +227,13 @@ IFACEMETHODIMP ContextMenuHandler::QueryContextMenu(HMENU hmenu, UINT indexMenu,
     return MAKE_HRESULT(SEVERITY_SUCCESS, FACILITY_NULL, maxId);
 }
 
-static std::wstring TempPathFile() {
-    wchar_t tmp[MAX_PATH];
-    GetTempPathW(MAX_PATH, tmp);
-    std::wstring dir = std::wstring(tmp) + L"GitVelto";
-    CreateDirectoryW(dir.c_str(), nullptr);
-    wchar_t name[64];
-    swprintf_s(name, L"\\paths-%lu-%llu.txt", GetCurrentProcessId(), GetTickCount64());
-    return dir + name;
-}
-
 IFACEMETHODIMP ContextMenuHandler::InvokeCommand(LPCMINVOKECOMMANDINFO pici) {
     if (HIWORD(pici->lpVerb) != 0) return E_INVALIDARG; // string verbs are not supported
     UINT index = LOWORD(pici->lpVerb);
     if (index >= m_entries.size()) return E_INVALIDARG;
     const wchar_t* action = g_actions[m_entries[index].action].id;
 
-    // Paths go through a UTF-8 file: no command line length limit, no quoting issues.
-    std::wstring file = TempPathFile();
-    std::string content;
-    for (auto& p : m_paths) content += ToUtf8(p) + "\n";
-    HANDLE h = CreateFileW(file.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_TEMPORARY, nullptr);
-    if (h == INVALID_HANDLE_VALUE) return E_FAIL;
-    DWORD written = 0;
-    WriteFile(h, content.data(), (DWORD)content.size(), &written, nullptr);
-    CloseHandle(h);
-
-    std::wstring exe = ModuleDir() + L"\\GitVelto.exe";
-    std::wstring cmd = L"\"" + exe + L"\" " + action + L" --pathfile \"" + file + L"\" --deletepathfile";
-    std::vector<wchar_t> buf(cmd.begin(), cmd.end());
-    buf.push_back(0);
-    std::wstring cwd = IsDirectory(m_paths[0]) ? m_paths[0] : ParentDir(m_paths[0]);
-    STARTUPINFOW si{ sizeof(si) };
-    PROCESS_INFORMATION pi{};
-    AllowSetForegroundWindow(ASFW_ANY);
-    if (!CreateProcessW(exe.c_str(), buf.data(), nullptr, nullptr, FALSE, 0, nullptr, cwd.empty() ? nullptr : cwd.c_str(), &si, &pi)) {
-        std::wstring msg = L"GitVelto.exe を起動できません。\n" + exe;
-        MessageBoxW(pici->hwnd, msg.c_str(), L"GitVelto", MB_ICONERROR);
-        DeleteFileW(file.c_str());
-        return HRESULT_FROM_WIN32(GetLastError());
-    }
-    CloseHandle(pi.hThread);
-    CloseHandle(pi.hProcess);
-    return S_OK;
+    return LaunchAction(action, m_paths, pici->hwnd);
 }
 
 IFACEMETHODIMP ContextMenuHandler::GetCommandString(UINT_PTR idCmd, UINT uType, UINT*, CHAR* pszName, UINT cchMax) {
