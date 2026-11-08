@@ -71,4 +71,4 @@ powershell -File windows\scripts\make-icon.ps1               # Resources/AppIcon
 
 GitVeltoCache.exe を `--log` 付きで起動すると `%TEMP%\GitVelto\cache.log` にログを出します。
 
-オーバーレイとメニューのアイコンは [Fluent UI System Icons](https://github.com/microsoft/fluentui-system-icons) (MIT) の図形から作っています (`windows	hird_partyluentui-system-icons`)。第三者ライセンスの表示は `windows\THIRD-PARTY-NOTICES.txt` にあり、ビルド時に .NET のライセンス原文 (`dotnet-LICENSE.txt` / `dotnet-THIRD-PARTY-NOTICES.txt`) と一緒に出力先へコピーされます。インストーラーが同梱する .NET ランタイムは `GitVeltoSetup.csproj` の `RuntimeFrameworkVersion` で固定しています。
+オーバーレイとメニューのアイコンは [Fluent UI System Icons](https://github.com/microsoft/fluentui-system-icons) (MIT) の図形から作っています (`windows\third_party\fluentui-system-icons`)。第三者ライセンスの表示は `windows\THIRD-PARTY-NOTICES.txt` にあり、ビルド時に .NET のライセンス原文 (`dotnet-LICENSE.txt` / `dotnet-THIRD-PARTY-NOTICES.txt`) と一緒に出力先へコピーされます。インストーラーが同梱する .NET ランタイムは `GitVeltoSetup.csproj` の `RuntimeFrameworkVersion` で固定しています。
