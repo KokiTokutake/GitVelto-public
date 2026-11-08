@@ -97,6 +97,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let helpItem = NSMenuItem()
         let help = NSMenu(title: "ヘルプ")
         help.addItem(withTitle: "GitVelto ヘルプ", action: #selector(showHelp), keyEquivalent: "?")
+        help.addItem(withTitle: "Git 用語集", action: #selector(showGlossary), keyEquivalent: "")
+        help.addItem(withTitle: "実行したコマンドの履歴", action: #selector(showHistory), keyEquivalent: "")
         helpItem.submenu = help
 
         let winItem = NSMenuItem()
@@ -123,6 +125,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             menu.addItem(withTitle: "クローン…", action: #selector(cloneRepository), keyEquivalent: "")
             menu.addItem(.separator())
             menu.addItem(withTitle: "設定…", action: #selector(showSettings), keyEquivalent: ",")
+            menu.addItem(withTitle: "Git 用語集", action: #selector(showGlossary), keyEquivalent: "")
+            menu.addItem(withTitle: "実行したコマンドの履歴", action: #selector(showHistory), keyEquivalent: "")
             menu.addItem(withTitle: "ヘルプ", action: #selector(showHelp), keyEquivalent: "")
             menu.addItem(withTitle: "GitVelto について", action: #selector(showAbout), keyEquivalent: "")
             menu.addItem(.separator())
@@ -139,6 +143,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func showSettings() { WindowManager.shared.showSettings() }
     @objc func showAbout() { WindowManager.shared.perform(.about, paths: []) }
     @objc func showHelp() { WindowManager.shared.perform(.help, paths: []) }
+    @objc func showGlossary() { WindowManager.shared.showGlossary() }
+    @objc func showHistory() { WindowManager.shared.showCommandHistory() }
     @objc func openSync() {
         if let p = chooseFolder("同期するリポジトリを選択") { WindowManager.shared.perform(.sync, paths: [p]) }
     }

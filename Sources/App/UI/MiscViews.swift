@@ -19,7 +19,7 @@ struct CloneView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Form {
-                TextField("URL", text: $url)
+                HStack { TextField("URL", text: $url); TermHelp("clone") }
                     .onChange(of: url) { if !dirEdited { dir = parentDir + "/" + Self.repoName(url) } }
                 HStack {
                     TextField("クローン先", text: Binding(get: { dir }, set: { dir = $0; dirEdited = true }))
@@ -33,13 +33,14 @@ struct CloneView: View {
                     }
                 }
                 TextField("ブランチ (省略可)", text: $branch)
-                TextField("深さ --depth (省略可)", text: $depth)
+                HStack { TextField("深さ --depth (省略可)", text: $depth); TermHelp("depth") }
                 TextField("リモート名 (-o)", text: $origin)
-                Toggle("サブモジュールも取得 (--recursive)", isOn: $recursive)
+                HStack { Toggle("サブモジュールも取得 (--recursive)", isOn: $recursive); TermHelp("submodule") }
                 Toggle("チェックアウトしない (--no-checkout)", isOn: $noCheckout)
-                Toggle("ベアリポジトリとしてクローン (--bare)", isOn: $bare)
+                HStack { Toggle("ベアリポジトリとしてクローン (--bare)", isOn: $bare); TermHelp("bare") }
             }
             Spacer()
+            CommandPreview(commands: url.isEmpty ? [] : [cloneArgs])
             HStack {
                 Spacer()
                 Button("キャンセル") { handle.close() }.keyboardShortcut(.cancelAction)
@@ -64,7 +65,7 @@ struct CloneView: View {
         return name
     }
 
-    private func run() {
+    private var cloneArgs: [String] {
         var args = ["clone", "--progress"]
         if recursive { args.append("--recursive") }
         if !branch.isEmpty { args += ["-b", branch] }
@@ -72,7 +73,11 @@ struct CloneView: View {
         if !origin.isEmpty && origin != "origin" { args += ["-o", origin] }
         if noCheckout { args.append("--no-checkout") }
         if bare { args.append("--bare") }
-        args += [url.trimmingCharacters(in: .whitespaces), dir]
+        return args + [url.trimmingCharacters(in: .whitespaces), dir]
+    }
+
+    private func run() {
+        let args = cloneArgs
         let target = dir
         let cwd = (dir as NSString).deletingLastPathComponent
         try? FileManager.default.createDirectory(atPath: cwd, withIntermediateDirectories: true)
@@ -92,22 +97,30 @@ struct InitRepoView: View {
     @State private var bare = false
     @State private var branch = "main"
 
+    private var initArgs: [String] {
+        var args = ["init"]
+        if !branch.isEmpty { args += ["-b", branch] }
+        if bare { args.append("--bare") }
+        return args
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("次の場所に Git リポジトリを作成します").font(.headline)
             Text(dir).foregroundStyle(.secondary).lineLimit(2).truncationMode(.middle)
             Form {
-                TextField("初期ブランチ名", text: $branch)
-                Toggle("ベアリポジトリにする (--bare)", isOn: $bare)
+                HStack { TextField("初期ブランチ名", text: $branch); TermHelp("main") }
+                HStack { Toggle("ベアリポジトリにする (--bare)", isOn: $bare); TermHelp("bare") }
             }
             Spacer()
+            CommandPreview(commands: [initArgs])
+            TermLabel("リポジトリとは", "repository").font(.caption).foregroundStyle(.secondary)
             HStack {
                 Spacer()
                 Button("キャンセル") { handle.close() }.keyboardShortcut(.cancelAction)
                 Button("作成") {
-                    var args = ["init"]
-                    if !branch.isEmpty { args += ["-b", branch] }
-                    if bare { args.append("--bare") }
+                    let args = initArgs
+                    CommandHistory.shared.record(args, dir: dir)
                     let r = Git.run(args, in: dir)
                     if r.ok {
                         StatusService.shared.invalidate(path: dir)
@@ -157,6 +170,7 @@ struct BlameView: View {
         VStack(spacing: 0) {
             HStack {
                 Text(repo.relative(path)).fontWeight(.semibold)
+                TermHelp("blame")
                 if let revision { Text("@ \(revision)").foregroundStyle(.secondary) }
                 Spacer()
                 if let h = selectedHash, let c = commits[h] {
@@ -309,6 +323,15 @@ struct SettingsView: View {
                 }
                 Text("Finder で右クリック → 「Git 同期…」「Git コミット…」「GitVelto ▸」から操作できます。メニューが出ない場合は「システム設定 > 一般 > ログイン項目と機能拡張」の Finder 拡張機能で GitVelto を有効にしてください。")
                     .font(.caption).foregroundStyle(.secondary)
+            }
+            Section("学習") {
+                Toggle("学習モード（実行される git コマンドとその意味を表示）", isOn: $settings.learningMode)
+                Text("各ダイアログに「実行されるコマンド」とオプションの意味を表示し、進捗画面にも解説を出します。操作しながら git コマンドを覚えたい方向けです。")
+                    .font(.caption).foregroundStyle(.secondary)
+                HStack {
+                    Button("Git 用語集を開く") { WindowManager.shared.showGlossary() }
+                    Button("実行したコマンドの履歴") { WindowManager.shared.showCommandHistory() }
+                }
             }
             Section("一般") {
                 Toggle("メニューバーにアイコンを表示", isOn: $settings.showMenuBarIcon)

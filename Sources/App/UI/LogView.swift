@@ -300,6 +300,7 @@ struct LogView: View {
                 }
                 Spacer()
                 Toggle("すべてのブランチ", isOn: $model.allBranches)
+                TermHelp("log")
                 TextField("フィルタ (メッセージ/作成者/ハッシュ/参照)", text: $model.filter)
                     .textFieldStyle(.roundedBorder).frame(width: 260)
                 if model.loading { ProgressView().controlSize(.small) }
@@ -535,10 +536,11 @@ struct LogView: View {
             Button("ブランチ…") { createRef(.branch, c) }.help("このコミットからブランチを作成")
             Button("タグ…") { createRef(.tag, c) }.help("このコミットにタグを作成")
             Button("切り替え") { detach(c) }.help("このコミットに切り替え (HEAD 切り離し)")
-            Button("リセット…") { reset(c) }.help("現在のブランチをこのコミットまでリセット")
-            Button("リバート") { revert(c) }.help("このコミットを打ち消すコミットを作成")
+            Button("リセット…") { reset(c) }.help("現在のブランチをこのコミットまでリセット — " + (Glossary.entry("reset")?.summary ?? ""))
+            Button("リバート") { revert(c) }.help("このコミットを打ち消すコミットを作成 — " + (Glossary.entry("revert")?.summary ?? ""))
             Button(sel.count > 1 ? "チェリーピック (\(sel.count))" : "チェリーピック") { cherryPick(sel) }
-                .help("現在のブランチにチェリーピック")
+                .help("現在のブランチにチェリーピック — " + (Glossary.entry("cherry-pick")?.summary ?? ""))
+            TermHelp("cherry-pick")
         }
         .controlSize(.small)
     }
@@ -658,8 +660,14 @@ struct ResetView: View {
                 Text("ハード: 作業ツリーとインデックスをリセット (変更は失われます)").tag("hard")
             }
             .pickerStyle(.radioGroup)
-            Spacer()
             HStack {
+                Text("取り消したいコミットがプッシュ済みなら、リセットではなくリバートが安全です。").font(.caption).foregroundStyle(.secondary)
+                TermHelp("revert")
+            }
+            Spacer()
+            CommandPreview(commands: [GitOps.reset(mode: mode, to: commit.short)])
+            HStack {
+                TermLabel("リセットとは", "reset").font(.caption).foregroundStyle(.secondary)
                 Spacer()
                 Button("キャンセル") { handle.close() }.keyboardShortcut(.cancelAction)
                 Button("リセット") {

@@ -76,7 +76,7 @@ enum GitAction: String, CaseIterable, Codable {
     case createPatch, applyPatch, export
     case remotes, repoSettings
     case clone, initRepo = "init"
-    case terminal, settings, help, about
+    case terminal, settings, glossary, commandHistory, help, about
 
     var title: String {
         switch self {
@@ -128,6 +128,8 @@ enum GitAction: String, CaseIterable, Codable {
         case .initRepo: return "Git ここにリポジトリを作成…"
         case .terminal: return "ターミナルで開く"
         case .settings: return "設定…"
+        case .glossary: return "Git 用語集"
+        case .commandHistory: return "実行したコマンドの履歴"
         case .help: return "ヘルプ"
         case .about: return "GitVelto について"
         }
@@ -184,6 +186,8 @@ enum GitAction: String, CaseIterable, Codable {
         case .initRepo: return "folder.badge.plus"
         case .terminal: return "terminal"
         case .settings: return "gearshape"
+        case .glossary: return "book"
+        case .commandHistory: return "list.bullet.clipboard"
         case .help: return "questionmark.circle"
         case .about: return "info.circle"
         }
@@ -204,7 +208,7 @@ enum GitAction: String, CaseIterable, Codable {
         .stashSave, .stashPop, .stashList, .bisectStart,
         .add, .revert, .resolve, .editConflict, .delete, .deleteKeep, .rename, .ignore, .blame, .clean,
         .submoduleAdd, .submoduleUpdate, .submoduleSync, .createPatch, .applyPatch, .export,
-        .remotes, .repoSettings, .terminal,
+        .remotes, .repoSettings, .terminal, .glossary, .commandHistory,
     ]
 }
 
@@ -259,7 +263,7 @@ enum MenuPlanner {
             if twoFiles { out.append(MenuEntry(action: .diff, title: "選択した 2 つのファイルを比較", topLevel: true, separatorBefore: false)) }
             out.append(MenuEntry(action: .clone, title: GitAction.clone.title, topLevel: true, separatorBefore: false))
             out.append(MenuEntry(action: .initRepo, title: GitAction.initRepo.title, topLevel: true, separatorBefore: false))
-            for a in [GitAction.terminal, .settings, .help, .about] {
+            for a in [GitAction.terminal, .settings, .glossary, .help, .about] {
                 out.append(MenuEntry(action: a, title: a.title, topLevel: false, separatorBefore: false))
             }
             return out
@@ -273,7 +277,7 @@ enum MenuPlanner {
         plan += c.bisecting ? [.bisectGood, .bisectBad, .bisectSkip, .bisectReset, nil] : [.bisectStart, nil]
         plan += [.editConflict, .resolve, .add, .revert, .delete, .deleteKeep, .rename, .ignore, .blame, .clean, nil]
         plan += [.submoduleAdd] + (c.hasSubmodules ? [.submoduleUpdate, .submoduleSync] : []) + [nil]
-        plan += [.createPatch, .applyPatch, .export, nil, .remotes, .repoSettings, .terminal, nil, .settings, .help, .about]
+        plan += [.createPatch, .applyPatch, .export, nil, .remotes, .repoSettings, .terminal, nil, .settings, .glossary, .commandHistory, .help, .about]
 
         func visible(_ a: GitAction) -> Bool {
             if cfg.isHidden(a) { return false }

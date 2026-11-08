@@ -46,6 +46,10 @@ final class WindowManager: NSObject, NSWindowDelegate {
             w.makeKeyAndOrderFront(nil)
             return w
         }
+        // Learning mode adds a command preview to dialogs: give small dialogs more room.
+        var size = size
+        if AppSettings.shared.learningMode && size.height <= 520 { size.height += 150 }
+        if AppSettings.shared.learningMode && title.contains("コミット") && size.height < 820 { size.height = 820 }
         let handle = WindowHandle()
         let root = content(handle)
             .environmentObject(handle)
@@ -150,6 +154,17 @@ final class WindowManager: NSObject, NSWindowDelegate {
 
     // MARK: - Dispatch
 
+    func showGlossary(select: String? = nil) {
+        if let w = keyedWindow("glossary") { w.close() }
+        show("Git 用語集", size: NSSize(width: 820, height: 560), key: "glossary") { _ in GlossaryView(selection: select) }
+    }
+
+    func showCommandHistory() {
+        show("実行したコマンドの履歴", size: NSSize(width: 760, height: 520), key: "history") { _ in CommandHistoryView() }
+    }
+
+    private func keyedWindow(_ key: String) -> NSWindow? { keyed[key] }
+
     func showSettings() {
         show("GitVelto 設定", size: NSSize(width: 680, height: 560), key: "settings") { _ in SettingsView() }
     }
@@ -178,6 +193,10 @@ final class WindowManager: NSObject, NSWindowDelegate {
         case .help:
             show("GitVelto ヘルプ", size: NSSize(width: 640, height: 620), key: "help") { _ in HelpView() }
             return
+        case .glossary:
+            showGlossary(); return
+        case .commandHistory:
+            showCommandHistory(); return
         case .clone:
             let dir = baseDir(paths.first)
             show("GitVelto - クローン", size: NSSize(width: 560, height: 330)) { _ in CloneView(parentDir: dir) }

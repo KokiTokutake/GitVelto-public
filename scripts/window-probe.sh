@@ -19,7 +19,7 @@ run() {
 }
 for a in commit log status sync pull fetch push switch branch tag merge rebase stashSave stashList add revert \
          delete deleteKeep ignore clean repoBrowser reflog refBrowser bisectStart submoduleAdd submoduleUpdate \
-         createPatch applyPatch export remotes repoSettings settings help about clone init; do run $a "$W"; done
+         createPatch applyPatch export remotes repoSettings settings glossary commandHistory help about clone init; do run $a "$W"; done
 run diff "$W/README.md"; run diffPrevious "$W/src/main.swift"; run blame "$W/src/main.swift"; run rename "$W/src/main.swift"
 run resolve "$C"; run editConflict "$C/src/main.swift"
 exit $FAIL

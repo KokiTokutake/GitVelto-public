@@ -218,6 +218,7 @@ struct ReflogView: View {
             RepoHeader(repo: repo)
             HStack {
                 Text("HEAD の移動履歴 (Reflog)").font(.headline)
+                TermHelp("reflog")
                 Spacer()
                 TextField("フィルタ", text: $filter).textFieldStyle(.roundedBorder).frame(width: 220)
                 Button { entries = repo.reflog() } label: { Image(systemName: "arrow.clockwise") }
@@ -300,6 +301,7 @@ struct RepoBrowserView: View {
                 Text("リビジョン:")
                 TextField("HEAD / ブランチ / タグ / ハッシュ", text: $revInput).frame(width: 260).onSubmit { revision = revInput; path = ""; load() }
                 Button("表示") { revision = revInput; path = ""; load() }
+                TermHelp("hash")
                 Spacer()
                 Text(repo.name).foregroundStyle(.secondary)
             }

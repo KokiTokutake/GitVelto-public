@@ -82,6 +82,7 @@ struct ConflictEditorView: View {
                 Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
                 Text(repo.relative(path)).fontWeight(.semibold)
                 Text("競合 \(conflicts.count) 箇所 / 未解決 \(unresolved)").foregroundStyle(unresolved > 0 ? .orange : .green)
+                TermHelp("conflict")
                 Spacer()
                 Button("次の未解決へ") {
                     jump = conflicts.first { $0.resolution == nil }?.id
@@ -114,6 +115,7 @@ struct ConflictEditorView: View {
             Divider()
             HStack {
                 Text("「自分」= 現在のブランチ (HEAD)、「相手」= マージ/適用しようとしている変更").font(.caption).foregroundStyle(.secondary)
+                TermHelp("ours-theirs")
                 Spacer()
                 if !AppSettings.shared.externalMerge.isEmpty {
                     Button("外部マージツール") { ExternalTools.merge(repo: repo, path: path); handle.close() }
@@ -149,6 +151,7 @@ struct ConflictEditorView: View {
             WindowManager.alert("保存できません", info: error.localizedDescription); return
         }
         if markResolved {
+            CommandHistory.shared.record(["add", "--", repo.relative(path)], dir: repo.root)
             let r = repo.git(["--literal-pathspecs", "add", "--", repo.relative(path)])
             if !r.ok { WindowManager.alert("解決済みにできません", info: r.message); return }
             StatusService.shared.invalidate(path: path)

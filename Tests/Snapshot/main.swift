@@ -78,7 +78,11 @@ snap("34_bisect", NSSize(width: 520, height: 300), BisectStartView(repo: work))
 snap("35_submodule", NSSize(width: 540, height: 260), SubmoduleAddView(repo: work, dir: work.root))
 snap("36_about", NSSize(width: 420, height: 300), AboutView())
 snap("37_delete", NSSize(width: 560, height: 360), DeleteView(repo: work, paths: [work.root + "/src/math.swift"]))
-snap("38_stashsave", NSSize(width: 480, height: 230), StashSaveView(repo: work))
+snap("38_stashsave", NSSize(width: 480, height: 330), StashSaveView(repo: work))
+snap("40_glossary", NSSize(width: 820, height: 560), GlossaryView(selection: "rebase"))
+CommandHistory.shared.record(["pull", "--progress", "--no-rebase", "origin", "main"], dir: work.root, ok: true)
+CommandHistory.shared.record(["--literal-pathspecs", "commit", "-m", "README を更新"], dir: work.root, ok: true)
+snap("41_history", NSSize(width: 760, height: 420), CommandHistoryView())
 
 // Progress dialog with a real command (fetch from local bare remote) + translation
 if filter.isEmpty || "39_progress".contains(filter) {

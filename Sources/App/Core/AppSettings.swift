@@ -26,6 +26,8 @@ final class AppSettings: ObservableObject {
     @Published var badgeExcludes: [String] { didSet { d.set(badgeExcludes, forKey: "badgeExcludes"); StatusService.shared.settingsChanged() } }
     @Published var terminalBundleID: String { didSet { d.set(terminalBundleID, forKey: "terminalBundleID") } }
     @Published var signOff: Bool { didSet { d.set(signOff, forKey: "signOff") } }
+    /// Learning mode: show the git commands (with explanations) that each dialog runs.
+    @Published var learningMode: Bool { didSet { d.set(learningMode, forKey: "learningMode") } }
 
     private init() {
         d.register(defaults: [
@@ -42,6 +44,7 @@ final class AppSettings: ObservableObject {
             "badgeExcludes": [String](),
             "terminalBundleID": "",
             "signOff": false,
+            "learningMode": true,
         ])
         gitPath = d.string(forKey: "gitPath") ?? ""
         badgesEnabled = d.bool(forKey: "badgesEnabled")
@@ -61,6 +64,7 @@ final class AppSettings: ObservableObject {
         badgeExcludes = d.stringArray(forKey: "badgeExcludes") ?? []
         terminalBundleID = d.string(forKey: "terminalBundleID") ?? ""
         signOff = d.bool(forKey: "signOff")
+        learningMode = d.bool(forKey: "learningMode")
     }
 
     func remember(message: String) {

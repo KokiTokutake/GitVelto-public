@@ -67,24 +67,27 @@ struct RemoteOpView: View {
                     }
                     switch mode {
                     case .pull:
-                        Toggle("リベースする (--rebase)", isOn: $rebase)
-                        Toggle("早送りのみ (--ff-only)", isOn: $ffOnly).disabled(rebase)
-                        Toggle("ローカルの変更を自動退避 (--autostash)", isOn: $autostash)
-                        Toggle("削除されたリモートブランチを整理 (--prune)", isOn: $prune)
+                        HStack { Toggle("リベースする (--rebase)", isOn: $rebase); TermHelp("rebase") }
+                        HStack { Toggle("早送りのみ (--ff-only)", isOn: $ffOnly).disabled(rebase); TermHelp("fast-forward") }
+                        HStack { Toggle("ローカルの変更を自動退避 (--autostash)", isOn: $autostash); TermHelp("autostash") }
+                        HStack { Toggle("削除されたリモートブランチを整理 (--prune)", isOn: $prune); TermHelp("prune") }
                     case .fetch:
                         Toggle("すべてのリモート (--all)", isOn: $allRemotes)
-                        Toggle("削除されたリモートブランチを整理 (--prune)", isOn: $prune)
-                        Toggle("すべてのタグを取得 (--tags)", isOn: $tags)
+                        HStack { Toggle("削除されたリモートブランチを整理 (--prune)", isOn: $prune); TermHelp("prune") }
+                        HStack { Toggle("すべてのタグを取得 (--tags)", isOn: $tags); TermHelp("tag") }
                     case .push:
                         Toggle("すべてのブランチをプッシュ (--all)", isOn: $allBranches)
-                        Toggle("上流ブランチとして設定 (-u)", isOn: $setUpstream)
-                        Toggle("強制プッシュ (--force-with-lease)", isOn: $force)
-                        Toggle("タグもプッシュ (--tags)", isOn: $tags)
+                        HStack { Toggle("上流ブランチとして設定 (-u)", isOn: $setUpstream); TermHelp("upstream") }
+                        HStack { Toggle("強制プッシュ (--force-with-lease)", isOn: $force); TermHelp("force-push") }
+                        HStack { Toggle("タグもプッシュ (--tags)", isOn: $tags); TermHelp("tag") }
                     }
                 }
             }
             Spacer()
+            CommandPreview(commands: remotes.isEmpty ? [] : [commandArgs])
             HStack {
+                TermLabel(mode == .pull ? "プルとは" : mode == .fetch ? "フェッチとは" : "プッシュとは",
+                          mode == .pull ? "pull" : mode == .fetch ? "fetch" : "push").font(.caption).foregroundStyle(.secondary)
                 Spacer()
                 Button("キャンセル") { handle.close() }.keyboardShortcut(.cancelAction)
                 Button(okTitle) { run() }.keyboardShortcut(.defaultAction).disabled(remotes.isEmpty)
@@ -92,6 +95,36 @@ struct RemoteOpView: View {
         }
         .padding(16)
         .onAppear { load() }
+    }
+
+    /// The git command this dialog runs (also shown in the learning-mode preview).
+    private var commandArgs: [String] {
+        var args: [String]
+        switch mode {
+        case .pull:
+            args = ["pull", "--progress", rebase ? "--rebase" : "--no-rebase"]
+            if autostash { args.append("--autostash") }
+            if prune { args.append("--prune") }
+            if ffOnly && !rebase { args.append("--ff-only") }
+            args.append(remote)
+            if !remoteBranch.isEmpty { args.append(remoteBranch) }
+        case .fetch:
+            args = ["fetch", "--progress"]
+            if prune { args.append("--prune") }
+            if tags { args.append("--tags") }
+            args.append(allRemotes ? "--all" : remote)
+        case .push:
+            args = ["push", "--progress"]
+            if setUpstream { args.append("-u") }
+            if force { args.append("--force-with-lease") }
+            if tags { args.append("--tags") }
+            if allBranches {
+                args += ["--all", remote]
+            } else {
+                args += [remote, "\(localBranch):\(remoteBranch.isEmpty ? localBranch : remoteBranch)"]
+            }
+        }
+        return args
     }
 
     private var okTitle: String {
@@ -122,37 +155,16 @@ struct RemoteOpView: View {
     }
 
     private func run() {
-        var args: [String]
         let title: String
         switch mode {
-        case .pull:
-            title = "プル"
-            args = ["pull", "--progress", rebase ? "--rebase" : "--no-rebase"]
-            if autostash { args.append("--autostash") }
-            if prune { args.append("--prune") }
-            if ffOnly && !rebase { args.append("--ff-only") }
-            args.append(remote)
-            if !remoteBranch.isEmpty { args.append(remoteBranch) }
-        case .fetch:
-            title = "フェッチ"
-            args = ["fetch", "--progress"]
-            if prune { args.append("--prune") }
-            if tags { args.append("--tags") }
-            args.append(allRemotes ? "--all" : remote)
+        case .pull: title = "プル"
+        case .fetch: title = "フェッチ"
         case .push:
             title = "プッシュ"
             guard !localBranch.isEmpty else { return }
             if force && !WindowManager.confirm("強制プッシュしますか?", info: "リモートの履歴が上書きされる可能性があります。", ok: "強制プッシュ", destructive: true) { return }
-            args = ["push", "--progress"]
-            if setUpstream { args.append("-u") }
-            if force { args.append("--force-with-lease") }
-            if tags { args.append("--tags") }
-            if allBranches {
-                args += ["--all", remote]
-            } else {
-                args += [remote, "\(localBranch):\(remoteBranch.isEmpty ? localBranch : remoteBranch)"]
-            }
         }
+        let args = commandArgs
         let root = repo.root
         WindowManager.shared.runProgress(title, dir: root, steps: [.git(args)],
                                          successActions: [ProgressAction(title: "ログを表示") { WindowManager.shared.perform(.log, paths: [root]) }])
@@ -190,12 +202,17 @@ struct SwitchView: View {
                 case .commit:
                     TextField("コミット (ハッシュ等)", text: $commit)
                 }
-                Toggle("新しいブランチを作成", isOn: $createBranch)
+                HStack { Toggle("新しいブランチを作成", isOn: $createBranch); TermHelp("branch") }
                 if createBranch { TextField("新しいブランチ名", text: $newBranch) }
                 Toggle("ローカルの変更を破棄して切り替え (--discard-changes)", isOn: $force)
+                if kind != .branch || isRemote, !createBranch {
+                    HStack { Text("ブランチを作らない場合は HEAD 切り離しになります").font(.caption).foregroundStyle(.secondary); TermHelp("detached") }
+                }
             }
             Spacer()
+            CommandPreview(commands: commandArgs.map { [$0] } ?? [])
             HStack {
+                TermLabel("切り替えとは", "switch").font(.caption).foregroundStyle(.secondary)
                 Spacer()
                 Button("キャンセル") { handle.close() }.keyboardShortcut(.cancelAction)
                 Button("切り替え") { run() }.keyboardShortcut(.defaultAction)
@@ -221,14 +238,13 @@ struct SwitchView: View {
         }
     }
 
-    private func run() {
+    private var commandArgs: [String]? {
         let ref = kind == .commit ? commit.trimmingCharacters(in: .whitespaces) : target
-        guard !ref.isEmpty else { return }
+        guard !ref.isEmpty else { return nil }
         var args = ["switch"]
         if force { args.append("--discard-changes") }
         if createBranch {
-            guard !newBranch.isEmpty else { WindowManager.alert("ブランチ名を入力してください"); return }
-            args += ["-c", newBranch]
+            args += ["-c", newBranch.isEmpty ? "<新しいブランチ名>" : newBranch]
             if isRemote { args.append("--track") }
             args.append(ref)
         } else if kind == .branch && !isRemote {
@@ -236,6 +252,12 @@ struct SwitchView: View {
         } else {
             args += ["--detach", ref]
         }
+        return args
+    }
+
+    private func run() {
+        if createBranch && newBranch.isEmpty { WindowManager.alert("ブランチ名を入力してください"); return }
+        guard let args = commandArgs else { return }
         WindowManager.shared.runProgress("切り替え", dir: repo.root, steps: [.git(args)])
         handle.close()
     }
@@ -258,12 +280,13 @@ struct CreateRefView: View {
     @State private var force = false
     @State private var message = ""
     @State private var pushTag = false
+    @State private var firstRemote: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             RepoHeader(repo: repo)
             Form {
-                TextField(kind == .branch ? "ブランチ名" : "タグ名", text: $name)
+                HStack { TextField(kind == .branch ? "ブランチ名" : "タグ名", text: $name); TermHelp(kind == .branch ? "branch" : "tag") }
                 Picker("作成元", selection: $baseKind) {
                     Text("HEAD (現在の作業コピー)").tag(0)
                     Text("ブランチ/タグ").tag(1)
@@ -272,7 +295,7 @@ struct CreateRefView: View {
                 if baseKind == 1 { RefPicker(title: "参照", refs: refs, selection: $baseRef) }
                 if baseKind == 2 { TextField("コミット", text: $baseCommit) }
                 if kind == .branch {
-                    Toggle("作成後に新しいブランチへ切り替え", isOn: $switchAfter)
+                    HStack { Toggle("作成後に新しいブランチへ切り替え", isOn: $switchAfter); TermHelp("switch") }
                     Toggle("既存のブランチを上書き (-f)", isOn: $force)
                 } else {
                     TextField("メッセージ (入力すると注釈付きタグ)", text: $message, axis: .vertical).lineLimit(2...4)
@@ -281,6 +304,7 @@ struct CreateRefView: View {
                 }
             }
             Spacer()
+            CommandPreview(commands: commandList)
             HStack {
                 Spacer()
                 Button("キャンセル") { handle.close() }.keyboardShortcut(.cancelAction)
@@ -290,20 +314,22 @@ struct CreateRefView: View {
         .padding(16)
         .onAppear {
             refs = repo.refs()
+            firstRemote = repo.remotes().first
             baseRef = refs.first?.name ?? ""
             if let base { baseKind = 2; baseCommit = base }
         }
     }
 
-    private func run() {
-        let n = name.trimmingCharacters(in: .whitespaces)
+    private var commandList: [[String]] {
+        let typed = name.trimmingCharacters(in: .whitespaces)
+        let n = typed.isEmpty ? (kind == .branch ? "<ブランチ名>" : "<タグ名>") : typed
         let start: String? = baseKind == 0 ? nil : (baseKind == 1 ? baseRef : baseCommit)
-        var steps: [ProgressStep] = []
+        var out: [[String]] = []
         if kind == .branch {
             if switchAfter {
-                steps.append(.git(["switch", force ? "-C" : "-c", n] + (start.map { [$0] } ?? [])))
+                out.append(["switch", force ? "-C" : "-c", n] + (start.map { [$0] } ?? []))
             } else {
-                steps.append(.git(["branch"] + (force ? ["-f"] : []) + [n] + (start.map { [$0] } ?? [])))
+                out.append(["branch"] + (force ? ["-f"] : []) + [n] + (start.map { [$0] } ?? []))
             }
         } else {
             var args = ["tag"]
@@ -311,11 +337,16 @@ struct CreateRefView: View {
             if !message.isEmpty { args += ["-a", "-m", message] }
             args.append(n)
             if let start { args.append(start) }
-            steps.append(.git(args))
-            if pushTag, let remote = repo.remotes().first {
-                steps.append(.git(["push", "--progress", remote, "refs/tags/\(n)"] + (force ? ["--force"] : [])))
+            out.append(args)
+            if pushTag, let remote = firstRemote {
+                out.append(["push", "--progress", remote, "refs/tags/\(n)"] + (force ? ["--force"] : []))
             }
         }
+        return out
+    }
+
+    private func run() {
+        let steps = commandList.map { ProgressStep.git($0) }
         WindowManager.shared.runProgress(kind == .branch ? "ブランチを作成" : "タグを作成", dir: repo.root, steps: steps)
         handle.close()
     }
@@ -338,14 +369,19 @@ struct MergeView: View {
             RepoHeader(repo: repo)
             Form {
                 RefPicker(title: "マージ元", refs: refs.filter { !$0.isHead }, selection: $target)
-                Toggle("早送りしない (--no-ff)", isOn: $noFF)
-                Toggle("スカッシュ (--squash)", isOn: $squash)
+                HStack { Toggle("早送りしない (--no-ff)", isOn: $noFF); TermHelp("no-ff") }
+                HStack { Toggle("スカッシュ (--squash)", isOn: $squash); TermHelp("squash") }
                 Toggle("コミットしない (--no-commit)", isOn: $noCommit)
                 TextField("マージメッセージ (省略可)", text: $message, axis: .vertical).lineLimit(2...5)
             }
-            Text("競合が発生した場合は「競合を解決」から解決後にコミットしてください。").font(.caption).foregroundStyle(.secondary)
-            Spacer()
             HStack {
+                Text("競合が発生した場合は「競合を解決」から解決後にコミットしてください。").font(.caption).foregroundStyle(.secondary)
+                TermHelp("conflict")
+            }
+            Spacer()
+            CommandPreview(commands: [mergeArgs])
+            HStack {
+                TermLabel("マージとは", "merge").font(.caption).foregroundStyle(.secondary)
                 Spacer()
                 Button("キャンセル") { handle.close() }.keyboardShortcut(.cancelAction)
                 Button("マージ") { run() }.keyboardShortcut(.defaultAction).disabled(target.isEmpty)
@@ -358,13 +394,18 @@ struct MergeView: View {
         }
     }
 
-    private func run() {
+    private var mergeArgs: [String] {
         var args = ["merge", "--progress", "--no-edit"]
         if noFF { args.append("--no-ff") }
         if squash { args.append("--squash") }
         if noCommit { args.append("--no-commit") }
         if !message.isEmpty { args += ["-m", message] }
         args.append(target)
+        return args
+    }
+
+    private func run() {
+        let args = mergeArgs
         let root = repo.root
         WindowManager.shared.runProgress("マージ", dir: root, steps: [.git(args)],
                                          successActions: [ProgressAction(title: "ログを表示") { WindowManager.shared.perform(.log, paths: [root]) }]) { ok in
@@ -389,24 +430,30 @@ struct StashSaveView: View {
     @State private var untracked = false
     @State private var keepIndex = false
 
+    private var stashArgs: [String] {
+        var args = ["stash", "push"]
+        if untracked { args.append("-u") }
+        if keepIndex { args.append("--keep-index") }
+        if !message.isEmpty { args += ["-m", message] }
+        return args
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             RepoHeader(repo: repo)
             Form {
                 TextField("メッセージ (省略可)", text: $message)
-                Toggle("未追跡ファイルも含める (-u)", isOn: $untracked)
-                Toggle("ステージ済みの変更は残す (--keep-index)", isOn: $keepIndex)
+                HStack { Toggle("未追跡ファイルも含める (-u)", isOn: $untracked); TermHelp("untracked") }
+                HStack { Toggle("ステージ済みの変更は残す (--keep-index)", isOn: $keepIndex); TermHelp("stage") }
             }
             Spacer()
+            CommandPreview(commands: [stashArgs])
             HStack {
+                TermLabel("退避 (stash) とは", "stash").font(.caption).foregroundStyle(.secondary)
                 Spacer()
                 Button("キャンセル") { handle.close() }.keyboardShortcut(.cancelAction)
                 Button("退避") {
-                    var args = ["stash", "push"]
-                    if untracked { args.append("-u") }
-                    if keepIndex { args.append("--keep-index") }
-                    if !message.isEmpty { args += ["-m", message] }
-                    WindowManager.shared.runProgress("変更を退避", dir: repo.root, steps: [.git(args)])
+                    WindowManager.shared.runProgress("変更を退避", dir: repo.root, steps: [.git(stashArgs)])
                     handle.close()
                 }.keyboardShortcut(.defaultAction)
             }

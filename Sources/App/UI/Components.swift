@@ -67,6 +67,7 @@ struct FileTable<MenuContent: View>: View {
             TableColumn("状態") { e in
                 Text(e.state.label + (e.staged && e.state.isTracked ? " (ステージ済)" : ""))
                     .foregroundStyle(e.state.color)
+                    .help(Glossary.entry(e.staged && e.state.isTracked ? "stage" : Glossary.key(for: e.state))?.summary ?? "")
             }.width(min: 70, ideal: 110, max: 160)
             TableColumn("拡張子") { e in Text(e.ext).foregroundStyle(.secondary) }
                 .width(min: 40, ideal: 60, max: 90)
@@ -95,6 +96,8 @@ struct OutputLine: Identifiable {
     let id: Int
     let raw: String
     let kind: Kind
+    /// git arguments for command lines (used by the learning mode to explain them)
+    var args: [String]? = nil
     var translated: String {
         kind == .normal || kind == .error || kind == .warning ? GitMessages.translate(line: raw) : raw
     }
@@ -198,11 +201,14 @@ final class CommandRunner: ObservableObject {
     private func runGit(_ args: [String], env: [String: String]) {
             let shown = args.filter { $0 != "--literal-pathspecs" }
             add("git " + shown.map { $0.contains(" ") ? "\"\($0)\"" : $0 }.joined(separator: " "), .command)
+            lines[lines.count - 1].args = args
+            let historyID = CommandHistory.shared.record(args, dir: dir)
             let p = StreamingProcess(executable: Git.executable,
                                      args: ["-c", "core.quotepath=off", "-c", "color.ui=false"] + args,
                                      dir: dir, env: Git.environment.merging(env) { _, n in n })
             p.onOutput = { [weak self] s in DispatchQueue.main.async { self?.consume(s) } }
             p.onExit = { [weak self] code in
+                CommandHistory.shared.finish(historyID, ok: code == 0)
                 DispatchQueue.main.async {
                     guard let self else { return }
                     if !self.partial.isEmpty { self.add(self.partial, self.classify(self.partial)); self.partial = "" }
@@ -226,6 +232,7 @@ struct ProgressOutputView: View {
     var successActions: [ProgressAction]
     @EnvironmentObject var handle: WindowHandle
     @AppStorage("progressShowRaw") private var showRaw = false
+    @EnvironmentObject var settings: AppSettings
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -248,6 +255,9 @@ struct ProgressOutputView: View {
                                 .foregroundStyle(color(line.kind))
                                 .fontWeight(line.kind == .command ? .semibold : .regular)
                                 .frame(maxWidth: .infinity, alignment: .leading)
+                            if settings.learningMode, let args = line.args {
+                                LearningNote(args: args)
+                            }
                         }
                         if !runner.partial.isEmpty {
                             Text(showRaw ? runner.partial : GitMessages.translate(line: runner.partial))
@@ -424,5 +434,22 @@ struct SplitPane<First: View, Second: View>: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
+    }
+}
+
+
+/// One-line explanation of a git command shown under it in progress windows (learning mode).
+struct LearningNote: View {
+    let args: [String]
+    var body: some View {
+        let ex = CommandExplainer.explain(args)
+        let opts = ex.options.map { "\($0.0): \($0.1)" }.joined(separator: " / ")
+        VStack(alignment: .leading, spacing: 1) {
+            if !ex.summary.isEmpty { Text("  ↳ " + ex.summary) }
+            if !opts.isEmpty { Text("    " + opts) }
+        }
+        .font(.system(size: 11))
+        .foregroundStyle(Color.accentColor.opacity(0.9))
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }

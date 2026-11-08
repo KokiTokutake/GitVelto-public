@@ -15,7 +15,7 @@ struct BisectStartView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             RepoHeader(repo: repo)
-            Text("不具合が入り込んだコミットを二分探索で特定します。").font(.headline)
+            HStack { Text("不具合が入り込んだコミットを二分探索で特定します。").font(.headline); TermHelp("bisect") }
             Form {
                 HStack {
                     TextField("良い (問題のない) コミット", text: $goodRef)
@@ -29,6 +29,8 @@ struct BisectStartView: View {
             Text("開始後は、チェックアウトされたコミットを確認し、Finder の右クリックメニュー「二分探索: 良い / 悪い」で判定を進めます。")
                 .font(.caption).foregroundStyle(.secondary)
             Spacer()
+            CommandPreview(commands: [["bisect", "start", badRef, goodRef], ["bisect", "good"], ["bisect", "bad"], ["bisect", "reset"]],
+                           note: "1 行目を実行した後、確認結果に応じて good / bad を繰り返し、最後に reset で終了します。")
             HStack {
                 Spacer()
                 Button("キャンセル") { handle.close() }.keyboardShortcut(.cancelAction)
@@ -64,6 +66,12 @@ struct ExportView: View {
     @State private var prefix = true
     @State private var output = ""
 
+    private var exportArgs: [String] {
+        var args = ["archive", "--format=\(format)", "-o", output]
+        if prefix { args.append("--prefix=\(repo.name)/") }
+        return args + [rev]
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             RepoHeader(repo: repo)
@@ -75,6 +83,7 @@ struct ExportView: View {
                     Text("tar").tag("tar")
                 }.pickerStyle(.segmented)
                 Toggle("フォルダ名 (\(repo.name)/) を付ける", isOn: $prefix)
+                CommandPreview(commands: [exportArgs])
                 HStack {
                     TextField("出力先", text: $output)
                     Button("選択…") {
@@ -89,9 +98,7 @@ struct ExportView: View {
                 Spacer()
                 Button("キャンセル") { handle.close() }.keyboardShortcut(.cancelAction)
                 Button("エクスポート") {
-                    var args = ["archive", "--format=\(format)", "-o", output]
-                    if prefix { args.append("--prefix=\(repo.name)/") }
-                    args.append(rev)
+                    let args = exportArgs
                     let out = output
                     WindowManager.shared.runProgress("エクスポート", dir: repo.root, steps: [.git(args)],
                                                      successActions: [ProgressAction(title: "Finder で表示") { revealInFinder([out]) }])
@@ -128,6 +135,7 @@ struct CreatePatchView: View {
         VStack(alignment: .leading, spacing: 12) {
             RepoHeader(repo: repo)
             Form {
+                HStack { Text("パッチ:").foregroundStyle(.secondary); TermHelp("patch") }
                 Picker("対象", selection: $mode) {
                     Text("直近のコミット").tag(0)
                     Text("指定の参照以降のコミット").tag(1)
@@ -147,6 +155,7 @@ struct CreatePatchView: View {
                 }
             }
             Spacer()
+            CommandPreview(commands: patchPreview)
             HStack {
                 Spacer()
                 Button("キャンセル") { handle.close() }.keyboardShortcut(.cancelAction)
@@ -157,6 +166,16 @@ struct CreatePatchView: View {
         .onAppear {
             if !commits.isEmpty { mode = 2 }
             outDir = FileManager.default.urls(for: .desktopDirectory, in: .userDomainMask).first?.path ?? NSHomeDirectory()
+        }
+    }
+
+    private var patchPreview: [[String]] {
+        switch mode {
+        case 3: return [["diff", "HEAD", "--binary"]]
+        case 2: return commits.reversed().map { ["format-patch", "-1", String($0.prefix(8)), "-o", outDir] }
+        default:
+            let range = mode == 0 ? ["-\(count)", "HEAD"] : ["\(since.isEmpty ? "<参照>" : since)..HEAD"]
+            return [single ? ["format-patch", "--stdout"] + range : ["format-patch", "-o", outDir] + range]
         }
     }
 
@@ -241,7 +260,9 @@ struct ApplyPatchView: View {
                 Text("コミットとして適用 (git am) — format-patch で作成したパッチ").tag(true)
                 Text("作業ツリーに適用 (git apply) — 差分のみ").tag(false)
             }.pickerStyle(.radioGroup)
+            CommandPreview(commands: files.isEmpty ? [] : [applyArgs + files.map { ($0 as NSString).lastPathComponent }])
             HStack {
+                TermHelp("patch")
                 Toggle("3-way マージ (-3)", isOn: $threeWay)
                 if useAm { Toggle("Signed-off-by を追加", isOn: $signOff) }
                 if !useAm { Toggle("確認のみ (--check)", isOn: $check) }
@@ -255,7 +276,7 @@ struct ApplyPatchView: View {
         .padding(14)
     }
 
-    private func run() {
+    private var applyArgs: [String] {
         var args: [String]
         if useAm {
             args = ["am"]
@@ -266,6 +287,11 @@ struct ApplyPatchView: View {
             if threeWay { args.append("--3way") }
             if check { args.append("--check") }
         }
+        return args
+    }
+
+    private func run() {
+        let args = applyArgs
         let root = repo.root
         WindowManager.shared.runProgress("パッチを適用", dir: root, steps: [.git(args + files)]) { ok in
             if !ok, Repo(root: root).operationState() == .applyingPatches {
@@ -295,6 +321,7 @@ struct SubmoduleAddView: View {
         VStack(alignment: .leading, spacing: 12) {
             RepoHeader(repo: repo)
             Form {
+                HStack { Text("サブモジュール:").foregroundStyle(.secondary); TermHelp("submodule") }
                 TextField("リポジトリ URL", text: $url).onChange(of: url) {
                     if !edited {
                         let rel = repo.relative(dir)
@@ -338,7 +365,7 @@ struct SubmoduleUpdateView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             RepoHeader(repo: repo)
-            Text("更新するサブモジュール").font(.headline)
+            HStack { Text("更新するサブモジュール").font(.headline); TermHelp("submodule") }
             List(subs) { s in
                 Toggle(isOn: Binding(get: { checked.contains(s.path) }, set: { v in if v { checked.insert(s.path) } else { checked.remove(s.path) } })) {
                     HStack {
@@ -406,7 +433,7 @@ struct RemotesView: View {
             }
             .frame(minWidth: 160, idealWidth: 190, maxWidth: 260)
             VStack(alignment: .leading, spacing: 10) {
-                Text(isNew ? "新しいリモート" : "リモートの編集").font(.headline)
+                HStack { Text(isNew ? "新しいリモート" : "リモートの編集").font(.headline); TermHelp("remote"); TermHelp("origin") }
                 Grid(alignment: .leading, horizontalSpacing: 8, verticalSpacing: 8) {
                     GridRow {
                         Text("名前").gridColumnAlignment(.trailing)
@@ -574,6 +601,8 @@ struct HelpView: View {
         Topic(title: "ブランチとマージ", symbol: "arrow.triangle.branch", text: "切り替え/チェックアウト、ブランチ・タグの作成、マージ、リベース (並べ替え・統合・削除・メッセージ変更が可能な対話的リベース) を行えます。「参照の一覧」ではブランチやタグの削除・名前変更・上流設定ができます。"),
         Topic(title: "競合の解決", symbol: "exclamationmark.triangle", text: "マージやリベースで競合したファイルは橙色のアイコンになります。「競合を編集…」で各競合箇所ごとに自分/相手/両方を選んで保存できます。「競合を解決…」で解決済みにし、マージ・リベースの続行/中止もそこから行えます。"),
         Topic(title: "その他の機能", symbol: "ellipsis.circle", text: "退避 (stash)、二分探索 (bisect)、Blame、リポジトリブラウザ、Reflog、サブモジュール、パッチの作成/適用、エクスポート (ZIP)、クリーンアップ (ゴミ箱へ移動)、無視リストへの追加、リモートの管理など、TortoiseGit の主な機能を利用できます。"),
+        Topic(title: "用語がわからないとき", symbol: "book", text: "各画面の用語の横にある「?」ボタンを押すと、その場で意味と使いどころが表示されます。すべての用語は「Git 用語集」（Finder の GitVelto メニュー、メニューバー、ヘルプメニューから開けます）で検索できます。"),
+        Topic(title: "コマンドを学ぶ（学習モード）", symbol: "graduationcap", text: "学習モードがオンのとき、各ダイアログの下に「実行される git コマンド」とオプションの意味が表示され、進捗画面にも各コマンドの解説が出ます。「実行したコマンドの履歴」では、これまでの操作で実行されたコマンドを確認・コピーでき、ターミナルで同じ操作を試せます。設定 > 一般 > 学習 でオン/オフを切り替えられます。"),
         Topic(title: "外部ツール", symbol: "wrench.and.screwdriver", text: "設定 > 外部ツールで、差分/マージに VS Code などの外部アプリを指定できます。$LOCAL・$REMOTE・$BASE・$MERGED がファイルパスに置き換わります。"),
     ]
 

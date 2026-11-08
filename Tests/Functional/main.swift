@@ -57,6 +57,27 @@ if let blob = work.exportBlob(rev: "v1.0", path: "src/main.swift"),
 check(GitMessages.translate(line: "hint: If you are sure you want to delete it, run 'git branch -D ctx'").contains("強制削除"), "branch -D hint")
 check(GitMessages.translate(line: "hint: To restore the original branch and stop patching, run \"git am --abort\".").contains("中止"), "am abort hint")
 
+print("■ glossary / learning mode")
+let usedKeys = ["amend", "autostash", "bare", "bisect", "blame", "branch", "cherry-pick", "clean", "clone", "commit", "conflict", "depth", "detached", "fast-forward", "fixup", "force-push", "hash", "ignore", "log", "main", "merge", "no-ff", "origin", "ours-theirs", "patch", "prune", "push", "rebase", "reflog", "remote", "repository", "reset", "revert", "revert-file", "signoff", "squash", "stage", "stash", "submodule", "switch", "tag", "tracked", "untracked", "upstream", "upstream", "detached", "branch", "tag", "stage", "untracked", "modified", "ignore", "conflict", "revert-file"]
+let missing = usedKeys.filter { Glossary.entry($0) == nil }
+check(missing.isEmpty, "every term used by \"?\" buttons exists", "\(missing)")
+let badRelated = Glossary.entries.flatMap { e in e.related.filter { Glossary.entry($0) == nil }.map { "\(e.id)->\($0)" } }
+check(badRelated.isEmpty, "related terms resolve", "\(badRelated)")
+check(Set(Glossary.entries.map(\.id)).count == Glossary.entries.count, "glossary ids unique")
+check(Glossary.entries.count >= 45, "glossary has \(Glossary.entries.count) terms")
+check(Glossary.search("リベース").contains { $0.id == "rebase" } && Glossary.search("push").contains { $0.id == "push" }, "glossary search (ja/en)")
+let ex = CommandExplainer.explain(["pull", "--progress", "--rebase", "--autostash", "origin", "main"])
+check(ex.command == "git pull --progress --rebase --autostash origin main" && ex.summary.contains("取り込み"), "explain pull", ex.command)
+check(ex.options.map(\.0) == ["--progress", "--rebase", "--autostash"], "explain pull options", "\(ex.options.map(\.0))")
+let ex2 = CommandExplainer.explain(["--literal-pathspecs", "commit", "-m", "日本語 メッセージ", "--amend"])
+check(ex2.command == "git commit -m \"日本語 メッセージ\" --amend" && ex2.options.map(\.0) == ["-m", "--amend"], "explain commit + quoting", ex2.command)
+let ex3 = CommandExplainer.explain(["-c", "protocol.file.allow=always", "submodule", "add", "--progress", "--", "/a", "b"])
+check(ex3.summary.contains("サブモジュール") && ex3.options.contains { $0.0 == "add" }, "explain with -c override")
+check(CommandExplainer.explain(["reset", "--hard", "abc"]).options.first?.1.contains("捨て") == true, "explain reset --hard")
+let hid = CommandHistory.shared.record(["status"], dir: "/tmp")
+CommandHistory.shared.finish(hid, ok: true)
+check(CommandHistory.shared.entries.first?.ok == true, "command history records")
+
 print("■ conflict parser")
 let text = (try? String(contentsOfFile: conflict.root + "/src/main.swift", encoding: .utf8)) ?? ""
 let segs = ConflictParser.parse(text)

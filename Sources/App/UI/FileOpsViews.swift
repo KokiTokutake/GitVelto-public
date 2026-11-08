@@ -34,6 +34,7 @@ struct FileActionView: View {
             RepoHeader(repo: model.repo)
             HStack {
                 Text(description).font(.headline)
+                TermHelp(mode == .add ? "untracked" : mode == .revert ? "revert-file" : "conflict")
                 if model.loading { ProgressView().controlSize(.small) }
                 Spacer()
                 if mode == .add { Toggle("無視されたファイルも表示", isOn: $model.showIgnored) }
@@ -55,8 +56,9 @@ struct FileActionView: View {
                     WorkingTreeMenu(model: model, ids: ids)
                 }
             }
+            CommandPreview(commands: previewCommands)
             HStack {
-                if mode == .resolve { operationButtons }
+                if mode == .resolve { operationButtons; TermHelp("ours-theirs") }
                 Spacer()
                 Button("キャンセル") { handle.close() }.keyboardShortcut(.cancelAction)
                 Button(okTitle) { run() }.keyboardShortcut(.defaultAction)
@@ -96,6 +98,22 @@ struct FileActionView: View {
 
     private var okTitle: String {
         switch mode { case .add: return "追加"; case .revert: return "元に戻す"; case .resolve: return "解決済みにする" }
+    }
+
+    private var previewCommands: [[String]] {
+        let sel = filtered.filter { model.checked.contains($0.id) }
+        guard !sel.isEmpty else { return [] }
+        switch mode {
+        case .add: return [["add", "-f", "--"] + sel.map(\.path)]
+        case .resolve: return [["add", "--"] + sel.map(\.path)]
+        case .revert:
+            var out: [[String]] = []
+            let unstage = sel.filter { $0.state == .added || $0.state == .renamed || $0.state == .copied }.map(\.path)
+            let restore = sel.filter { $0.state != .added && $0.state != .renamed && $0.state != .copied }.map(\.path) + sel.compactMap(\.origPath)
+            if !unstage.isEmpty { out.append(["rm", "--cached", "-r", "-q", "--"] + unstage) }
+            if !restore.isEmpty { out.append(["restore", "--source=HEAD", "--staged", "--worktree", "--"] + restore) }
+            return out
+        }
     }
 
     private func checkout(_ sel: [StatusEntry], _ side: String) {
@@ -152,7 +170,9 @@ struct DeleteView: View {
             List(paths, id: \.self) { p in Text(repo.relative(p)) }
             Toggle("ローカルのファイルは残す (--cached)", isOn: $keepLocal)
             Toggle("変更があっても削除する (-f)", isOn: $force)
+            CommandPreview(commands: [["rm", "-r"] + (keepLocal ? ["--cached"] : []) + (force ? ["-f"] : []) + ["--"] + paths.map { repo.relative($0) }])
             HStack {
+                TermLabel("Git から削除とは", "tracked").font(.caption).foregroundStyle(.secondary)
                 Spacer()
                 Button("キャンセル") { handle.close() }.keyboardShortcut(.cancelAction)
                 Button("削除") {
@@ -184,12 +204,13 @@ struct RenameView: View {
             Text("\(repo.relative(path)) の新しい名前").font(.headline)
             TextField("新しい名前 (フォルダを含めて指定すると移動)", text: $newName)
             Spacer()
+            CommandPreview(commands: [["mv", "--", repo.relative(path), renameTarget]])
             HStack {
                 Spacer()
                 Button("キャンセル") { handle.close() }.keyboardShortcut(.cancelAction)
                 Button("名前を変更") {
-                    let dir = (repo.relative(path) as NSString).deletingLastPathComponent
-                    let target = newName.contains("/") ? newName : (dir.isEmpty ? newName : dir + "/" + newName)
+                    let target = renameTarget
+                    CommandHistory.shared.record(["mv", "--", repo.relative(path), target], dir: repo.root)
                     let r = repo.git(["mv", "--", repo.relative(path), target])
                     if r.ok {
                         StatusService.shared.invalidate(path: repo.root)
@@ -202,6 +223,11 @@ struct RenameView: View {
         }
         .padding(16)
         .onAppear { newName = (path as NSString).lastPathComponent }
+    }
+
+    private var renameTarget: String {
+        let dir = (repo.relative(path) as NSString).deletingLastPathComponent
+        return newName.contains("/") ? newName : (dir.isEmpty ? newName : dir + "/" + newName)
     }
 }
 
@@ -259,7 +285,7 @@ struct IgnoreView: View {
                 }
                 Toggle("追跡中の場合はインデックスから削除 (git rm --cached)", isOn: $untrack)
             }
-            Text("追加されるパターン:").font(.headline)
+            HStack { Text("追加されるパターン:").font(.headline); TermHelp("ignore") }
             Text(patterns.joined(separator: "\n"))
                 .font(.system(size: 12, design: .monospaced))
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -321,6 +347,7 @@ struct CleanView: View {
                     ForEach(Scope.allCases, id: \.self) { Text($0.rawValue).tag($0) }
                 }.pickerStyle(.segmented).frame(width: 320)
                 Toggle("フォルダも含める", isOn: $dirs)
+                TermHelp("clean")
                 Spacer()
                 if loading { ProgressView().controlSize(.small) }
             }
@@ -332,6 +359,8 @@ struct CleanView: View {
                     }
                 }.toggleStyle(.checkbox)
             }
+            CommandPreview(commands: [cleanArgs(dryRun: true)] + (settings.cleanToTrash ? [] : [cleanArgs(dryRun: false)]),
+                           note: settings.cleanToTrash ? "「ゴミ箱に移動する」がオンの場合、git clean -n で一覧を出した後、Finder と同じようにゴミ箱へ移動します（git clean -f は使いません）。" : nil)
             HStack {
                 Text("\(checked.count) / \(items.count) 件").foregroundStyle(.secondary)
                 Toggle("ゴミ箱に移動する", isOn: $settings.cleanToTrash)
@@ -344,6 +373,17 @@ struct CleanView: View {
         .onAppear(perform: preview)
         .onChange(of: scope) { preview() }
         .onChange(of: dirs) { preview() }
+    }
+
+    private func cleanArgs(dryRun: Bool) -> [String] {
+        var args = ["clean", dryRun ? "-n" : "-f"]
+        if dirs { args.append("-d") }
+        switch scope {
+        case .untracked: break
+        case .ignored: args.append("-X")
+        case .both: args.append("-x")
+        }
+        return args
     }
 
     private func preview() {

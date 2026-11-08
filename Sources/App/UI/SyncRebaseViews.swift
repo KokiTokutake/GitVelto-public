@@ -5,6 +5,7 @@ import SwiftUI
 struct OutputLogView: View {
     @ObservedObject var runner: CommandRunner
     @AppStorage("progressShowRaw") private var showRaw = false
+    @EnvironmentObject var settings: AppSettings
 
     var body: some View {
         ScrollViewReader { proxy in
@@ -16,6 +17,7 @@ struct OutputLogView: View {
                             .foregroundStyle(OutputLogView.color(line.kind))
                             .fontWeight(line.kind == .command ? .semibold : .regular)
                             .frame(maxWidth: .infinity, alignment: .leading)
+                        if settings.learningMode, let args = line.args { LearningNote(args: args) }
                     }
                     if !runner.partial.isEmpty {
                         Text(showRaw ? runner.partial : GitMessages.translate(line: runner.partial))
@@ -67,6 +69,7 @@ struct CommitListTable: View {
 struct SyncView: View {
     let repo: Repo
     @EnvironmentObject var handle: WindowHandle
+    @EnvironmentObject var settings: AppSettings
     @State private var refs: [RefInfo] = []
     @State private var remotes: [String] = []
     @State private var localBranch = ""
@@ -119,6 +122,14 @@ struct SyncView: View {
                 Text("受信予定のコミット (\(incoming.count))").tag(1)
                 Text("送信予定のコミット (\(outgoing.count))").tag(2)
             }.pickerStyle(.segmented).labelsHidden()
+            if settings.learningMode {
+                HStack(spacing: 4) {
+                    Image(systemName: "graduationcap").foregroundStyle(Color.accentColor)
+                    Text("プル = git pull（取得＋取り込み）/ フェッチ = git fetch（取得のみ）/ フェッチ＆リベース = git fetch + git rebase / プッシュ = git push。受信予定 = リモートにあって手元にないコミット、送信予定 = 手元にあってリモートにないコミット。")
+                        .font(.caption).foregroundStyle(.secondary)
+                    TermHelp("upstream")
+                }
+            }
 
             Group {
                 switch tab {
@@ -254,8 +265,11 @@ struct RebaseView: View {
                 Spacer()
                 Button { load() } label: { Image(systemName: "arrow.clockwise") }
             }
-            Text("\(items.count) 個のコミットを並べ替え・統合・削除できます (ドラッグまたは ↑↓ で並べ替え)。上が古いコミットです。")
-                .font(.caption).foregroundStyle(.secondary)
+            HStack {
+                Text("\(items.count) 個のコミットを並べ替え・統合・削除できます (ドラッグまたは ↑↓ で並べ替え)。上が古いコミットです。")
+                    .font(.caption).foregroundStyle(.secondary)
+                TermHelp("rebase"); TermHelp("squash"); TermHelp("fixup")
+            }
             List(selection: $selection) {
                 ForEach($items) { $item in
                     HStack {
@@ -277,6 +291,9 @@ struct RebaseView: View {
                 }
                 .onMove { from, to in items.move(fromOffsets: from, toOffset: to) }
             }
+            CommandPreview(commands: rebasePreview,
+                           note: items.map(\.id) == originalOrder && items.allSatisfy { $0.action == .pick } ? nil :
+                               "対話的リベースでは、次の作業リスト (todo) を git に渡します:\n" + todoPreview)
             HStack {
                 Button { move(-1) } label: { Image(systemName: "arrow.up") }.disabled(selection == nil)
                 Button { move(1) } label: { Image(systemName: "arrow.down") }.disabled(selection == nil)
@@ -308,6 +325,16 @@ struct RebaseView: View {
     }
 
     private var target: String { useCustom ? custom.trimmingCharacters(in: .whitespaces) : upstream }
+
+    private var rebasePreview: [[String]] {
+        guard !target.isEmpty else { return [] }
+        let unchanged = items.map(\.id) == originalOrder && items.allSatisfy { $0.action == .pick }
+        return [["rebase"] + (autostash ? ["--autostash"] : []) + (unchanged ? [] : ["-i"]) + [target]]
+    }
+
+    private var todoPreview: String {
+        items.map { "\($0.action == .reword ? "reword" : $0.action.rawValue) \($0.commit.short) \($0.commit.subject)" }.joined(separator: "\n")
+    }
 
     private func load() {
         guard !target.isEmpty else { items = []; return }

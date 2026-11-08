@@ -66,6 +66,7 @@ struct WorkingTreeMenu: View {
         if sel.contains(where: { $0.state == .untracked }) {
             Button("追加 (git add)") {
                 let rels = sel.filter { $0.state == .untracked }.map(\.path)
+                CommandHistory.shared.record(["add", "--"] + rels, dir: model.repo.root, ok: true)
                 model.repo.git(["--literal-pathspecs", "add", "--"] + rels)
                 model.reload()
             }
@@ -79,6 +80,7 @@ struct WorkingTreeMenu: View {
         }
         if sel.contains(where: { $0.staged }) {
             Button("ステージを解除") {
+                CommandHistory.shared.record(["restore", "--staged", "--"] + sel.filter(\.staged).map(\.path), dir: model.repo.root, ok: true)
                 model.repo.git(["--literal-pathspecs", "restore", "--staged", "--"] + sel.filter(\.staged).map(\.path))
                 model.reload()
             }
@@ -134,6 +136,7 @@ struct CommitView: View {
                 .frame(minHeight: 110, idealHeight: 150)
             HStack(spacing: 12) {
                 Button("Signed-off-by を追加") { addSignOff() }.controlSize(.small)
+                TermHelp("signoff")
                 Toggle("作成者を指定", isOn: $setAuthor)
                 if setAuthor { TextField("名前 <メール>", text: $author).frame(width: 220) }
                 Toggle("日時を指定", isOn: $setDate)
@@ -154,6 +157,7 @@ struct CommitView: View {
                             message = model.repo.git(["log", "-1", "--format=%B"]).out.trimmingCharacters(in: .whitespacesAndNewlines)
                         }
                     }
+                TermHelp("amend")
                 Spacer()
                 let first = message.split(separator: "\n", omittingEmptySubsequences: false).first.map(String.init) ?? ""
                 Text("1行目: \(first.count) 文字").font(.caption).foregroundStyle(first.count > 72 ? .orange : .secondary)
@@ -171,6 +175,7 @@ struct CommitView: View {
             Divider()
             HStack {
                 Text("変更されたファイル").font(.headline)
+                TermHelp("stage")
                 Text("\(model.checked.count) / \(model.entries.count) 選択").foregroundStyle(.secondary)
                 if model.loading { ProgressView().controlSize(.small) }
                 Spacer()
@@ -186,9 +191,13 @@ struct CommitView: View {
             }
             .frame(minHeight: 180)
 
+            CommandPreview(commands: previewCommands,
+                           note: "実際には、ファイル一覧やメッセージは一時ファイル経由で渡します (--pathspec-from-file / -F)。")
             HStack {
                 Toggle("コミット後にプッシュ", isOn: $push)
+                TermHelp("push")
                 Spacer()
+                TermLabel("コミットとは", "commit").font(.caption).foregroundStyle(.secondary)
                 Button("キャンセル") { handle.close() }.keyboardShortcut(.cancelAction)
                 Button(push ? "コミットしてプッシュ" : "コミット") { commit() }
                     .keyboardShortcut(.return, modifiers: .command)
@@ -206,6 +215,24 @@ struct CommitView: View {
             needsIdentity = n.isEmpty || e.isEmpty
             userName = n; userEmail = e
         }
+    }
+
+    /// Readable equivalent of the commit steps for the learning-mode preview.
+    private var previewCommands: [[String]] {
+        let sel = model.entries.filter { model.checked.contains($0.id) }
+        var out: [[String]] = []
+        if newBranch { out.append(["switch", "-c", branchName.isEmpty ? "<ブランチ名>" : branchName]) }
+        let addPaths = sel.filter { e in e.y != " " || e.state == .untracked }.map(\.path)
+        if !addPaths.isEmpty { out.append(["add", "-A", "--"] + addPaths) }
+        let firstLine = message.split(separator: "\n").first.map(String.init) ?? ""
+        var commit = ["commit", "-m", firstLine.isEmpty ? "<メッセージ>" : firstLine]
+        if amend { commit.append("--amend") }
+        if setAuthor && !author.isEmpty { commit.append("--author=\(author)") }
+        if sel.isEmpty && !amend { commit.append("--allow-empty") }
+        if model.opState != .merging && !sel.isEmpty { commit += ["--"] + sel.flatMap { [$0.path] + ($0.origPath.map { [$0] } ?? []) } }
+        out.append(commit)
+        if push { out.append(["push"]) }
+        return out
     }
 
     private func addSignOff() {
