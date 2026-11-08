@@ -34,6 +34,8 @@ Copy-Item (Join-Path $here "src\GitVeltoShell\bin\x64\$Configuration\GitVeltoShe
 Step 'copy overlays and scripts'
 New-Item -ItemType Directory -Force (Join-Path $out 'overlays') | Out-Null
 Copy-Item (Join-Path $here 'src\GitVelto\Assets\overlays\*.ico') (Join-Path $out 'overlays')
+New-Item -ItemType Directory -Force (Join-Path $out 'menuicons') | Out-Null
+Copy-Item (Join-Path $here 'src\GitVelto\Assets\menuicons\*.ico') (Join-Path $out 'menuicons')
 Copy-Item (Join-Path $here 'scripts\register-shell.ps1') $out
 Copy-Item (Join-Path $here 'scripts\install.ps1') $out
 Get-ChildItem $out -Filter *.pdb | Remove-Item

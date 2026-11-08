@@ -50,6 +50,19 @@ public class ShellExtensionTests
     [DllImport("user32")] private static extern bool DestroyMenu(IntPtr m);
     [DllImport("user32")] private static extern int GetMenuItemCount(IntPtr m);
     [DllImport("user32")] private static extern IntPtr GetSubMenu(IntPtr m, int pos);
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    private struct MENUITEMINFO
+    {
+        public int cbSize; public uint fMask, fType, fState, wID; public IntPtr hSubMenu, hbmpChecked, hbmpUnchecked, dwItemData, dwTypeData;
+        public uint cch; public IntPtr hbmpItem;
+    }
+    [DllImport("user32", CharSet = CharSet.Unicode)] private static extern bool GetMenuItemInfoW(IntPtr m, uint item, bool byPosition, ref MENUITEMINFO info);
+    private const uint MIIM_BITMAP = 0x80;
+    private static bool HasBitmap(IntPtr menu, int pos)
+    {
+        var mii = new MENUITEMINFO { cbSize = Marshal.SizeOf<MENUITEMINFO>(), fMask = MIIM_BITMAP };
+        return GetMenuItemInfoW(menu, (uint)pos, true, ref mii) && mii.hbmpItem != IntPtr.Zero;
+    }
     [DllImport("user32", CharSet = CharSet.Unicode)] private static extern int GetMenuStringW(IntPtr m, uint item, StringBuilder s, int max, uint flags);
     [DllImport("shell32", CharSet = CharSet.Unicode)] private static extern int SHParseDisplayName(string name, IntPtr bindCtx, out IntPtr pidl, uint sfgaoIn, out uint sfgaoOut);
     [DllImport("shell32")] private static extern int SHCreateShellItemArrayFromIDLists(uint count, IntPtr[] pidls, out IShellItemArray array);
@@ -95,6 +108,8 @@ public class ShellExtensionTests
         return o;
     }
 
+    private static int iconCount;
+
     private static List<(string Title, List<string>? Sub)> ReadMenu(IntPtr menu)
     {
         var items = new List<(string, List<string>?)>();
@@ -104,6 +119,7 @@ public class ShellExtensionTests
             var sb = new StringBuilder(512);
             GetMenuStringW(menu, (uint)i, sb, sb.Capacity, MF_BYPOSITION);
             var sub = GetSubMenu(menu, i);
+            if (HasBitmap(menu, i)) iconCount++;
             items.Add((sb.ToString(), sub == IntPtr.Zero ? null : ReadMenu(sub).Select(x => x.Item1).ToList()));
         }
         return items;
@@ -159,6 +175,10 @@ public class ShellExtensionTests
             var name = Path.GetFileName(f);
             if (name.StartsWith("GitVeltoCache") || name.StartsWith("GitVelto.Core")) File.Copy(f, Path.Combine(dir, name), true);
         }
+        // Menu icons (menuicons\<action>.ico) next to the DLL, as installed.
+        var icons = Path.Combine(TestEnv.RepoRootDir(), "windows", "src", "GitVelto", "Assets", "menuicons");
+        Directory.CreateDirectory(Path.Combine(dir, "menuicons"));
+        foreach (var f in Directory.GetFiles(icons, "*.ico")) File.Copy(f, Path.Combine(dir, "menuicons", Path.GetFileName(f)), true);
         var repos = TestEnv.MakeTestRepos();
         var work = Path.Combine(repos, "work");
 
@@ -192,7 +212,11 @@ public class ShellExtensionTests
             Assert.EndsWith(@"overlays\conflict.ico", icon.ToString());
 
             // ---- context menu ----
+            iconCount = 0;
             var rootMenu = MenuFor(module, work);
+            // Every action item (top level and submenu) has an icon. The "GitVelto" submenu entry itself uses the icon of
+            // GitVelto.exe, which is not part of the test folder: hence "- 1".
+            Assert.Equal(rootMenu.Count + rootMenu.First(i => i.Title == "GitVelto").Sub!.Count(s => s.Length > 0) - 1, iconCount);
             var titles = rootMenu.Select(i => i.Title).ToList();
             Assert.Contains("Git 同期…", titles);
             Assert.Contains("Git コミット -> \"main\"…", titles);

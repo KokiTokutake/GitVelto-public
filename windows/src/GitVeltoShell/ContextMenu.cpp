@@ -5,7 +5,6 @@
 ContextMenuHandler::ContextMenuHandler() : m_ref(1) { DllAddRef(); }
 
 ContextMenuHandler::~ContextMenuHandler() {
-    if (m_icon) DeleteObject(m_icon);
     DllRelease();
 }
 
@@ -53,13 +52,10 @@ IFACEMETHODIMP ContextMenuHandler::Initialize(PCIDLIST_ABSOLUTE pidlFolder, IDat
     return m_paths.empty() ? E_FAIL : S_OK;
 }
 
-// 32bpp bitmap of the GitVelto icon for the menu (menus draw PARGB bitmaps with alpha).
-static HBITMAP IconBitmap() {
-    int cx = GetSystemMetrics(SM_CXSMICON), cy = GetSystemMetrics(SM_CYSMICON);
-    std::wstring exe = ModuleDir() + L"\\GitVelto.exe";
-    HICON icon = nullptr;
-    PrivateExtractIconsW(exe.c_str(), 0, cx, cy, &icon, nullptr, 1, 0);
-    if (!icon) return nullptr;
+// Menus draw 32bpp premultiplied-alpha (PARGB) bitmaps. Converts an icon into one.
+static HBITMAP IconToBitmap(HICON icon, int cx, int cy) {
+    ICONINFO ii{};
+    if (!GetIconInfo(icon, &ii)) return nullptr;
     BITMAPINFO bi{};
     bi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
     bi.bmiHeader.biWidth = cx;
@@ -67,16 +63,46 @@ static HBITMAP IconBitmap() {
     bi.bmiHeader.biPlanes = 1;
     bi.bmiHeader.biBitCount = 32;
     bi.bmiHeader.biCompression = BI_RGB;
-    void* bits = nullptr;
-    HDC dc = CreateCompatibleDC(nullptr);
-    HBITMAP bmp = CreateDIBSection(dc, &bi, DIB_RGB_COLORS, &bits, nullptr, 0);
-    if (bmp) {
-        HGDIOBJ old = SelectObject(dc, bmp);
-        DrawIconEx(dc, 0, 0, icon, cx, cy, 0, nullptr, DI_NORMAL);
-        SelectObject(dc, old);
+    std::vector<DWORD> px((size_t)cx * cy, 0);
+    HDC dc = GetDC(nullptr);
+    bool ok = ii.hbmColor && GetDIBits(dc, ii.hbmColor, 0, cy, px.data(), &bi, DIB_RGB_COLORS) == cy;
+    ReleaseDC(nullptr, dc);
+    if (ii.hbmColor) DeleteObject(ii.hbmColor);
+    if (ii.hbmMask) DeleteObject(ii.hbmMask);
+    if (!ok) return nullptr;
+    for (auto& p : px) {
+        DWORD a = p >> 24;
+        DWORD r = ((p >> 16) & 0xFF) * a / 255, g = ((p >> 8) & 0xFF) * a / 255, b = (p & 0xFF) * a / 255;
+        p = (a << 24) | (r << 16) | (g << 8) | b;
     }
-    DeleteDC(dc);
-    DestroyIcon(icon);
+    void* bits = nullptr;
+    HBITMAP bmp = CreateDIBSection(nullptr, &bi, DIB_RGB_COLORS, &bits, nullptr, 0);
+    if (bmp && bits) memcpy(bits, px.data(), px.size() * sizeof(DWORD));
+    return bmp;
+}
+
+// Bitmaps live for the life of the DLL (shared by all menus; a few dozen small bitmaps).
+static SRWLOCK g_iconLock = SRWLOCK_INIT;
+static std::map<std::wstring, HBITMAP>* g_icons = nullptr;
+
+// Icon of an action (install folder\menuicons\<id>.ico) or, for "app", the GitVelto icon.
+static HBITMAP MenuIcon(const std::wstring& id) {
+    int cx = GetSystemMetrics(SM_CXSMICON), cy = GetSystemMetrics(SM_CYSMICON);
+    std::wstring key = id + L"@" + std::to_wstring(cx);
+    AcquireSRWLockExclusive(&g_iconLock);
+    if (!g_icons) g_icons = new std::map<std::wstring, HBITMAP>();
+    auto it = g_icons->find(key);
+    if (it != g_icons->end()) { HBITMAP b = it->second; ReleaseSRWLockExclusive(&g_iconLock); return b; }
+    HICON icon = nullptr;
+    if (id == L"app") {
+        PrivateExtractIconsW((ModuleDir() + L"\\GitVelto.exe").c_str(), 0, cx, cy, &icon, nullptr, 1, 0);
+    } else {
+        icon = (HICON)LoadImageW(nullptr, (ModuleDir() + L"\\menuicons\\" + id + L".ico").c_str(), IMAGE_ICON, cx, cy, LR_LOADFROMFILE);
+    }
+    HBITMAP bmp = icon ? IconToBitmap(icon, cx, cy) : nullptr;
+    if (icon) DestroyIcon(icon);
+    (*g_icons)[key] = bmp;
+    ReleaseSRWLockExclusive(&g_iconLock);
     return bmp;
 }
 
@@ -106,11 +132,10 @@ IFACEMETHODIMP ContextMenuHandler::QueryContextMenu(HMENU hmenu, UINT indexMenu,
         ctx.branch = BranchName(*roots[0]);
     }
     m_entries = PlanMenu(ctx, LoadMenuConfig());
-    if (!m_icon) m_icon = IconBitmap();
 
     UINT pos = indexMenu;
     UINT maxId = 0;
-    auto addItem = [&](HMENU menu, UINT& at, size_t index, bool withIcon) {
+    auto addItem = [&](HMENU menu, UINT& at, size_t index) {
         UINT id = idCmdFirst + (UINT)index;
         if (id > idCmdLast) return;
         MENUITEMINFOW mii{ sizeof(mii) };
@@ -118,7 +143,7 @@ IFACEMETHODIMP ContextMenuHandler::QueryContextMenu(HMENU hmenu, UINT indexMenu,
         mii.fType = MFT_STRING;
         mii.wID = id;
         mii.dwTypeData = const_cast<wchar_t*>(m_entries[index].title.c_str());
-        if (withIcon && m_icon) { mii.fMask |= MIIM_BITMAP; mii.hbmpItem = m_icon; }
+        if (HBITMAP icon = MenuIcon(g_actions[m_entries[index].action].id)) { mii.fMask |= MIIM_BITMAP; mii.hbmpItem = icon; }
         InsertMenuItemW(menu, at++, TRUE, &mii);
         if (index + 1 > maxId) maxId = (UINT)index + 1;
     };
@@ -134,10 +159,10 @@ IFACEMETHODIMP ContextMenuHandler::QueryContextMenu(HMENU hmenu, UINT indexMenu,
     UINT subPos = 0;
     for (size_t i = 0; i < m_entries.size(); i++) {
         if (m_entries[i].topLevel) {
-            addItem(hmenu, pos, i, true);
+            addItem(hmenu, pos, i);
         } else {
             if (m_entries[i].separatorBefore) addSeparator(sub, subPos);
-            addItem(sub, subPos, i, false);
+            addItem(sub, subPos, i);
         }
     }
     if (subPos > 0) {
@@ -146,7 +171,7 @@ IFACEMETHODIMP ContextMenuHandler::QueryContextMenu(HMENU hmenu, UINT indexMenu,
         mii.fType = MFT_STRING;
         mii.hSubMenu = sub;
         mii.dwTypeData = const_cast<wchar_t*>(L"GitVelto");
-        if (m_icon) { mii.fMask |= MIIM_BITMAP; mii.hbmpItem = m_icon; }
+        if (HBITMAP icon = MenuIcon(L"app")) { mii.fMask |= MIIM_BITMAP; mii.hbmpItem = icon; }
         InsertMenuItemW(hmenu, pos++, TRUE, &mii);
     } else {
         DestroyMenu(sub);

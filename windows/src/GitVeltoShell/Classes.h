@@ -42,7 +42,6 @@ private:
     LONG m_ref;
     std::vector<std::wstring> m_paths;
     std::vector<MenuEntry> m_entries;
-    HBITMAP m_icon = nullptr;
 };
 
 class ClassFactory : public IClassFactory {

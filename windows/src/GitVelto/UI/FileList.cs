@@ -20,10 +20,10 @@ public sealed class FileItem : INotifyPropertyChanged
     public bool IsChecked
     {
         get => isChecked;
-        set { if (isChecked == value) return; isChecked = value; OnChanged(); CheckedChanged?.Invoke(); }
+        set { if (isChecked == value) return; isChecked = value; OnChanged(); CheckedChanged?.Invoke(this); }
     }
 
-    internal Action? CheckedChanged;
+    internal Action<FileItem>? CheckedChanged;
 
     public string Id => Entry.Id;
     public string DisplayPath => Entry.DisplayPath;
@@ -49,6 +49,15 @@ public sealed class FileList : DataGrid
     /// <summary>Builds the context menu for the selected entries (return null for none).</summary>
     public Func<IReadOnlyList<StatusEntry>, ContextMenu?>? MenuBuilder { get; set; }
 
+    /// <summary>Header check box: checks / unchecks every row (shows a dash when only some are checked).</summary>
+    private readonly CheckBox headerCheck = new()
+    {
+        IsThreeState = true, Focusable = false, MinWidth = 0, HorizontalAlignment = HorizontalAlignment.Center,
+        ToolTip = "すべて選択 / すべて解除",
+    };
+    private int batch;          // > 0 while many check marks change at once
+    private bool propagating;   // applying one check box to the other selected rows
+
     public FileList(bool checkable)
     {
         // Subclasses do not receive the implicit (Fluent) style of their base type: apply it explicitly.
@@ -69,6 +78,7 @@ public sealed class FileList : DataGrid
 
         if (checkable)
         {
+            headerCheck.Click += (_, _) => SetAllChecked(!Items_.All(i => i.IsChecked));
             var check = new FrameworkElementFactory(typeof(CheckBox));
             check.SetBinding(ToggleButton_IsChecked, new Binding(nameof(FileItem.IsChecked)) { Mode = BindingMode.TwoWay, UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged });
             check.SetValue(HorizontalAlignmentProperty, HorizontalAlignment.Center);
@@ -76,7 +86,7 @@ public sealed class FileList : DataGrid
             check.SetValue(MinWidthProperty, 0.0);
             Columns.Add(new DataGridTemplateColumn
             {
-                Header = "", Width = 36, CanUserResize = false,
+                Header = headerCheck, Width = 44, CanUserResize = false,
                 CellTemplate = new DataTemplate { VisualTree = check },
             });
         }
@@ -155,16 +165,90 @@ public sealed class FileList : DataGrid
         Items_.Clear();
         foreach (var e in entries)
         {
-            var item = new FileItem(e, isChecked?.Invoke(e) ?? false) { CheckedChanged = () => CheckedChanged?.Invoke() };
+            var item = new FileItem(e, isChecked?.Invoke(e) ?? false) { CheckedChanged = OnItemChecked };
             Items_.Add(item);
             if (selected.Contains(e.Id)) SelectedItems.Add(item);
         }
+        RaiseChecked();
+    }
+
+    /// <summary>
+    /// A row check box changed. When that row is part of a multi-row selection, the same state is applied
+    /// to every selected row (select rows with Shift/Ctrl, then click one check box).
+    /// </summary>
+    private void OnItemChecked(FileItem item)
+    {
+        if (batch > 0) return;
+        if (!propagating && SelectedItems.Count > 1 && SelectedItems.Contains(item))
+        {
+            propagating = true;
+            batch++;
+            try { foreach (var i in SelectedItems.OfType<FileItem>()) i.IsChecked = item.IsChecked; }
+            finally { batch--; propagating = false; }
+        }
+        RaiseChecked();
+    }
+
+    private void RaiseChecked()
+    {
+        int n = Items_.Count(i => i.IsChecked);
+        headerCheck.IsChecked = n == 0 ? false : n == Items_.Count ? true : null;
+        headerCheck.IsEnabled = Items_.Count > 0;
         CheckedChanged?.Invoke();
     }
 
-    public void SetAllChecked(bool value)
+    /// <summary>Sets every check mark in one go (one change notification).</summary>
+    public void SetAllChecked(bool value) => SetChecked(_ => value);
+
+    /// <summary>Sets the check mark of every row from <paramref name="value"/> (one change notification).</summary>
+    public void SetChecked(Func<StatusEntry, bool> value)
     {
-        foreach (var i in Items_) i.IsChecked = value;
+        batch++;
+        try { foreach (var i in Items_) i.IsChecked = value(i.Entry); }
+        finally { batch--; }
+        RaiseChecked();
+    }
+
+    /// <summary>
+    /// TortoiseGit-style quick selection: toggles the rows of one kind (checks them all, or unchecks them all
+    /// when they are already checked); other rows keep their state.
+    /// </summary>
+    public void ToggleKind(Func<StatusEntry, bool> kind)
+    {
+        var rows = Items_.Where(i => kind(i.Entry)).ToList();
+        if (rows.Count == 0) return;
+        bool target = !rows.All(i => i.IsChecked);
+        var ids = new HashSet<string>(rows.Select(r => r.Id));
+        SetChecked(e => ids.Contains(e.Id) ? target : Items_.First(i => i.Id == e.Id).IsChecked);
+    }
+
+    /// <summary>"選択 ▾" button: select all / none / by kind (未追跡・変更・追加・削除・名前変更・競合・ステージ済).</summary>
+    public Button SelectButton()
+    {
+        var b = new Button { Content = "選択 ▾", Margin = new Thickness(0, 0, 6, 0), ToolTip = "チェックをまとめて切り替え (種類ごと)" };
+        b.Click += (_, _) =>
+        {
+            var m = new ContextMenu { PlacementTarget = b, Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom };
+            void Kind(string label, Func<StatusEntry, bool> f)
+            {
+                int n = Items_.Count(i => f(i.Entry));
+                var mi = Item($"{label} ({n})", () => ToggleKind(f));
+                mi.IsEnabled = n > 0;
+                m.Items.Add(mi);
+            }
+            m.Items.Add(Item("すべて選択", () => SetAllChecked(true), ""));
+            m.Items.Add(Item("すべて解除", () => SetAllChecked(false)));
+            m.Items.Add(new Separator());
+            Kind("未追跡", e => e.State == FileState.Untracked);
+            Kind("変更", e => e.State is FileState.Modified or FileState.TypeChanged);
+            Kind("追加", e => e.State is FileState.Added or FileState.Copied);
+            Kind("削除", e => e.State == FileState.Deleted);
+            Kind("名前変更", e => e.State == FileState.Renamed);
+            Kind("競合", e => e.State == FileState.Conflict);
+            Kind("ステージ済", e => e.Staged);
+            m.IsOpen = true;
+        };
+        return b;
     }
 
     public static MenuItem Item(string header, Action action, string? glyph = null)

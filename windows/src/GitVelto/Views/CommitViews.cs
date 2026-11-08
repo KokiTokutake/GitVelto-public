@@ -95,14 +95,11 @@ public sealed class CommitView : GVView
         // --- files ---
         var fileHeader = new DockPanel { Margin = new Thickness(0, 10, 0, 4) };
         var right = new StackPanel { Orientation = Orientation.Horizontal };
-        var all = new Button { Content = "全選択", Margin = new Thickness(0, 0, 6, 0) };
-        all.Click += (_, _) => files.SetAllChecked(true);
-        var none = new Button { Content = "全解除", Margin = new Thickness(0, 0, 6, 0) };
-        none.Click += (_, _) => files.SetAllChecked(false);
+        // Bulk check: header check box + "選択 ▾" (by kind); clicking one check box applies to all selected rows.
+        var selectMenu = files.SelectButton();
         right.Children.Add(showUntracked);
         if (model.HasPathFilter) right.Children.Add(wholeProject);
-        right.Children.Add(all);
-        right.Children.Add(none);
+        right.Children.Add(selectMenu);
         right.Children.Add(Ui.IconButton("", "再読み込み", Reload));
         DockPanel.SetDock(right, Dock.Right);
         fileHeader.Children.Add(right);

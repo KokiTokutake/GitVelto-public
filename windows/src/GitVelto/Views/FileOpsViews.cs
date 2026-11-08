@@ -42,12 +42,9 @@ public sealed class FileActionView : GVView
             right.Children.Add(showIgnored);
             showIgnored.Click += (_, _) => { model.ShowIgnored = showIgnored.IsChecked == true; Reload(); };
         }
-        var all = new Button { Content = "全選択", Margin = new Thickness(0, 0, 6, 0) };
-        all.Click += (_, _) => files.SetAllChecked(true);
-        var none = new Button { Content = "全解除" };
-        none.Click += (_, _) => files.SetAllChecked(false);
-        right.Children.Add(all);
-        right.Children.Add(none);
+        // Bulk check: header check box + "選択 ▾" (by kind); clicking one check box applies to all selected rows.
+        var selectMenu = files.SelectButton();
+        right.Children.Add(selectMenu);
         DockPanel.SetDock(right, Dock.Right);
         header.Children.Add(right);
         var helpKey = mode switch { FileActionMode.Add => "untracked", FileActionMode.Revert => "revert-file", _ => "conflict" };
