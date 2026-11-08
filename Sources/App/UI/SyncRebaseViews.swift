@@ -78,6 +78,7 @@ struct SyncView: View {
     @State private var outgoing: [Commit] = []
     @State private var sel: Set<String> = []
     @State private var running = false
+    @State private var opState: RepoOperationState = .none
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -108,6 +109,7 @@ struct SyncView: View {
                 Button { run("プル＆プッシュ", [["pull", "--progress", "--no-rebase", remote, remoteBranch], pushArgs]) } label: { Label("プル＆プッシュ", systemImage: "arrow.triangle.2.circlepath") }
                 Spacer()
                 if running { ProgressView().controlSize(.small) }
+                Button { load() } label: { Image(systemName: "arrow.clockwise") }.help("状態を再読み込み")
                 Button("すべてフェッチ") { run("フェッチ", [["fetch", "--progress", "--all", "--prune"]]) }
             }
             .disabled(remotes.isEmpty || running)
@@ -135,6 +137,11 @@ struct SyncView: View {
             HStack {
                 Button("ログを表示") { WindowManager.shared.perform(.log, paths: [repo.root]) }
                 Button("コミット…") { WindowManager.shared.perform(.commit, paths: [repo.root]) }
+                if opState != .none && opState != .bisecting {
+                    Label(opState.label, systemImage: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+                    Button("競合を解決…") { WindowManager.shared.perform(.resolve, paths: [repo.root]) }
+                        .buttonStyle(.borderedProminent)
+                }
                 Spacer()
                 Button("閉じる") { handle.close() }.keyboardShortcut(.cancelAction)
             }
@@ -152,6 +159,7 @@ struct SyncView: View {
     private func load() {
         refs = repo.refs()
         remotes = repo.remotes()
+        opState = repo.operationState()
         localBranch = repo.currentBranch() ?? refs.first { $0.kind == .local }?.name ?? ""
         defaultsForBranch()
         refreshCommits()
@@ -184,6 +192,7 @@ struct SyncView: View {
             running = false
             StatusService.shared.invalidate(path: repo.root)
             refs = repo.refs()
+            opState = repo.operationState()
             refreshCommits()
         }
         runner = r

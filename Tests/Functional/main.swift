@@ -67,6 +67,9 @@ check(GitMessages.translate(line: "CONFLICT (content): Merge conflict in a.txt")
 check(GitMessages.translate(line: "Receiving objects: 100% (3/3), done.") == "オブジェクトを受信中: 100% (3/3), done.", "progress")
 check(GitMessages.translate(line: "\tmodified:   README.md") == "\t変更:     README.md", "status modified")
 check(GitMessages.translate(line: "some unknown line") == "some unknown line", "unknown passthrough")
+check(GitMessages.translate(line: "hint: use 'git pull' before pushing again.") == "ヒント: 再度プッシュする前に 'git pull' を実行してください。", "hint pull before push")
+check(GitMessages.translate(line: "Version 71d3852 of docs/guide.md left in tree.").contains("作業ツリーに残されています"), "modify/delete left in tree")
+check(GitMessages.translate(line: "  (use \"git pull\" to update your local branch)").contains("ローカルブランチを更新"), "pull hint in status")
 
 print("■ commit (only checked files)")
 let commitEntries = work.status().filter { $0.path == "README.md" || $0.path == "docs/guide.md" }
