@@ -1,0 +1,43 @@
+<Application x:Class="GitVelto.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             ThemeMode="System"
+             ShutdownMode="OnExplicitShutdown">
+    <Application.Resources>
+        <ResourceDictionary>
+            <FontFamily x:Key="MonoFont">Cascadia Mono, Consolas, BIZ UDGothic, MS Gothic</FontFamily>
+            <FontFamily x:Key="IconFont">Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>
+
+            <SolidColorBrush x:Key="StateModified" Color="#D7263D"/>
+            <SolidColorBrush x:Key="StateAdded" Color="#0A69D9"/>
+            <SolidColorBrush x:Key="StateDeleted" Color="#9C6B30"/>
+            <SolidColorBrush x:Key="StateRenamed" Color="#8E44AD"/>
+            <SolidColorBrush x:Key="StateConflict" Color="#E08A00"/>
+            <SolidColorBrush x:Key="DiffAddBg" Color="#3328A745"/>
+            <SolidColorBrush x:Key="DiffDelBg" Color="#33D7263D"/>
+            <SolidColorBrush x:Key="DiffHunkBg" Color="#220A69D9"/>
+            <SolidColorBrush x:Key="LearningBg" Color="#140A69D9"/>
+            <SolidColorBrush x:Key="AccentText" Color="#2F7BD9"/>
+
+            <Style x:Key="Caption" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="12"/>
+                <Setter Property="Opacity" Value="0.72"/>
+                <Setter Property="TextWrapping" Value="Wrap"/>
+            </Style>
+            <Style x:Key="Heading" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="15"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
+            </Style>
+            <Style x:Key="SectionHeader" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="13"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
+                <Setter Property="Margin" Value="0,12,0,6"/>
+            </Style>
+            <Style x:Key="IconButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                <Setter Property="FontFamily" Value="{StaticResource IconFont}"/>
+                <Setter Property="Padding" Value="6,4"/>
+                <Setter Property="MinWidth" Value="0"/>
+            </Style>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>
