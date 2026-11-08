@@ -54,6 +54,7 @@ if let blob = work.exportBlob(rev: "v1.0", path: "src/main.swift"),
    let txt = try? String(contentsOfFile: blob, encoding: .utf8) {
     check(txt.contains("print(\"hello\")"), "export blob at v1.0 (repo browser open)")
 } else { check(false, "export blob at v1.0 (repo browser open)") }
+check(GitMessages.translate(line: "hint: If you are sure you want to delete it, run 'git branch -D ctx'").contains("強制削除"), "branch -D hint")
 check(GitMessages.translate(line: "hint: To restore the original branch and stop patching, run \"git am --abort\".").contains("中止"), "am abort hint")
 
 print("■ conflict parser")

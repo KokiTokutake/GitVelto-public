@@ -148,6 +148,7 @@ struct SyncView: View {
         }
         .padding(14)
         .onAppear(perform: load)
+        .onRepoChanged(repo.root) { if !running { load() } }
     }
 
     private var pushArgs: [String] {

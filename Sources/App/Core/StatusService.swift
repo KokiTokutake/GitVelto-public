@@ -154,6 +154,7 @@ final class StatusService {
 
     /// Call after the app modified a repository.
     func invalidate(path: String) {
+        notifyRepoChanged(path)
         guard let root = PathUtil.findRepoRoot(path) else { return }
         q.async { self.scheduleRefresh(root: root, delay: 0.1) }
     }

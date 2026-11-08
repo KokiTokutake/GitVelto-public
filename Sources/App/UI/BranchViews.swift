@@ -459,6 +459,7 @@ struct StashListView: View {
         }
         .padding(14)
         .onAppear(perform: load)
+        .onRepoChanged(repo.root) { load() }
         .onChange(of: selected) {
             guard let s = selected else { files = []; return }
             files = repo.changedFiles(from: "\(s)^1", to: s)

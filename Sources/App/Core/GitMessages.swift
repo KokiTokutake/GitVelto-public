@@ -185,6 +185,7 @@ enum GitMessages {
         r(#"^cannot do a partial commit during a merge\.$"#, "マージ中は一部のファイルだけをコミットできません。"),
         r(#"^the branch '(.*)' is not fully merged\.?$"#, "ブランチ '$1' は完全にはマージされていません。"),
         r(#"^could not apply (.*)$"#, "$1 を適用できませんでした"),
+        r(#"^If you are sure you want to delete it, run 'git branch -D (.*)'\.?$"#, "本当に削除する場合は 'git branch -D $1' (強制削除) を実行してください。"),
         r(#"^Failed to merge in the changes\.$"#, "変更をマージできませんでした。"),
         r(#"^Use 'git am --show-current-patch=diff' to see the failed patch$"#, "失敗したパッチは 'git am --show-current-patch=diff' で確認できます"),
         r(#"^When you have resolved this problem, run "git (am|rebase|cherry-pick|revert) --continue"\.$"#, "問題を解決したら「競合を解決」画面の「続行」(git $1 --continue) を実行してください。"),

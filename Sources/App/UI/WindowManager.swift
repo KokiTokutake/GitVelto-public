@@ -5,6 +5,26 @@ import os
 private let wlog = Logger(subsystem: "com.ktoku.GitVelto", category: "Window")
 
 /// Lets SwiftUI content close its hosting window.
+extension Notification.Name {
+    /// Posted (object = repository root path) after GitVelto changed a repository, so open windows can refresh.
+    static let gitVeltoRepoChanged = Notification.Name("GitVeltoRepoChanged")
+}
+
+/// Notifies open windows that a repository changed.
+func notifyRepoChanged(_ path: String) {
+    let root = PathUtil.findRepoRoot(path) ?? path
+    DispatchQueue.main.async { NotificationCenter.default.post(name: .gitVeltoRepoChanged, object: root) }
+}
+
+extension View {
+    /// Runs `action` whenever GitVelto changes the given repository (from any window).
+    func onRepoChanged(_ root: String, perform action: @escaping () -> Void) -> some View {
+        onReceive(NotificationCenter.default.publisher(for: .gitVeltoRepoChanged)) { n in
+            if (n.object as? String) == root { action() }
+        }
+    }
+}
+
 final class WindowHandle: ObservableObject {
     weak var window: NSWindow?
     func close() { window?.close() }
@@ -119,7 +139,7 @@ final class WindowManager: NSObject, NSWindowDelegate {
                      successActions: [ProgressAction] = [], onFinish: ((Bool) -> Void)? = nil) {
         let runner = CommandRunner(dir: dir, steps: steps)
         runner.onFinish = { ok in
-            StatusService.shared.invalidate(path: dir)
+            StatusService.shared.invalidate(path: dir)  // also notifies open windows
             onFinish?(ok)
         }
         show("GitVelto - \(title)", size: NSSize(width: 640, height: 400), minSize: NSSize(width: 420, height: 240)) { _ in

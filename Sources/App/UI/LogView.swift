@@ -282,6 +282,7 @@ struct LogView: View {
             }
         }
         .onAppear { model.reload() }
+        .onRepoChanged(model.repo.root) { model.reload() }
     }
 
     private var toolbar: some View {

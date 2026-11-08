@@ -286,6 +286,7 @@ struct StatusView: View {
         }
         .padding(14)
         .onAppear { model.reload() }
+        .onRepoChanged(model.repo.root) { model.reload() }
     }
 
     private func savePatch() {

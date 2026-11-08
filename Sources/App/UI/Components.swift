@@ -347,11 +347,14 @@ struct RepoHeader: View {
             Text(branch).fontWeight(.semibold)
         }
         .font(.callout)
-        .task {
-            let r = repo
-            let (b, s) = await Task.detached { (r.headDescription(), r.operationState()) }.value
-            branch = b; opState = s
-        }
+        .task { await refresh() }
+        .onRepoChanged(repo.root) { Task { await refresh() } }
+    }
+
+    private func refresh() async {
+        let r = repo
+        let (b, s) = await Task.detached { (r.headDescription(), r.operationState()) }.value
+        branch = b; opState = s
     }
 }
 

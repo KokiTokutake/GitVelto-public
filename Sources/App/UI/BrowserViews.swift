@@ -61,6 +61,7 @@ struct RefBrowserView: View {
         }
         .padding(14)
         .onAppear(perform: load)
+        .onRepoChanged(repo.root) { load() }
     }
 
     private func load() {
@@ -117,7 +118,7 @@ struct RefBrowserView: View {
                 steps.append(.git(GitOps.deleteRemoteTags(tags.map(\.name), remote: remote)))
             }
         }
-        if steps.isEmpty { load() } else { run("参照を削除", steps) }
+        if steps.isEmpty { load(); notifyRepoChanged(repo.root) } else { run("参照を削除", steps) }
     }
 
     @ViewBuilder
@@ -240,6 +241,7 @@ struct ReflogView: View {
         }
         .padding(14)
         .onAppear { entries = repo.reflog() }
+        .onRepoChanged(repo.root) { entries = repo.reflog() }
     }
 
     private func commit(_ e: ReflogEntry) -> Commit {
