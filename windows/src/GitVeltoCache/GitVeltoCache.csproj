@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!-- No console window: started in the background by the shell extension or the app. -->
+    <OutputType>WinExe</OutputType>
+    <RootNamespace>GitVelto.Cache</RootNamespace>
+    <AssemblyName>GitVeltoCache</AssemblyName>
+    <ApplicationIcon>..\GitVelto\Assets\AppIcon.ico</ApplicationIcon>
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <ServerGarbageCollection>false</ServerGarbageCollection>
+    <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
+    <TieredPGO>true</TieredPGO>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\GitVelto.Core\GitVelto.Core.csproj" />
+  </ItemGroup>
+</Project>

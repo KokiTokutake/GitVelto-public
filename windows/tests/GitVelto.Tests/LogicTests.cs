@@ -35,7 +35,7 @@ public class LogicTests
             "depth", "detached", "fast-forward", "fixup", "force-push", "hash", "ignore", "log", "main", "merge", "no-ff", "origin",
             "ours-theirs", "patch", "prune", "push", "rebase", "reflog", "remote", "repository", "reset", "revert", "revert-file",
             "signoff", "squash", "stage", "stash", "submodule", "switch", "tag", "tracked", "untracked", "upstream", "modified"];
-        Assert.Empty(usedKeys.Where(k => Core.Glossary.Entry(k) == null));
+        Assert.DoesNotContain(usedKeys, k => Core.Glossary.Entry(k) == null);
         Assert.Empty(Core.Glossary.Entries.SelectMany(e => e.Related.Where(r => Core.Glossary.Entry(r) == null).Select(r => $"{e.Id}->{r}")));
         Assert.Equal(Core.Glossary.Entries.Length, Core.Glossary.Entries.Select(e => e.Id).Distinct().Count());
         Assert.True(Core.Glossary.Entries.Length >= 45);

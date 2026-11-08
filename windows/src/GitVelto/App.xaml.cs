@@ -28,6 +28,7 @@ public partial class App : Application
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+        ApplyStyleFixes();
         var args = e.Args;
 
         if (Environment.GetEnvironmentVariable("GITVELTO_ASKPASS") == "1" && IsAskPassInvocation(args))
@@ -38,6 +39,25 @@ public partial class App : Application
         }
 
         Git.AskPassExecutable = Environment.ProcessPath;
+
+        if (args.Length >= 3 && args[0] == "--snapshot")
+        {
+            if (args.Length >= 4) ThemeMode = args[3] == "dark" ? ThemeMode.Dark : ThemeMode.Light;
+            ApplyStyleFixes();
+            Directory.CreateDirectory(args[1]);
+            DispatcherUnhandledException += (_, ev) =>
+            {
+                File.AppendAllText(Path.Combine(args[1], "errors.txt"), ev.Exception + "\n\n");
+                ev.Handled = true;
+            };
+            Dispatcher.BeginInvoke(async () =>
+            {
+                try { await Snapshot.Run(args[1], args[2]); }
+                finally { Shutdown(0); }
+            });
+            return;
+        }
+
         var request = ParseArgs(args, out bool background);
 
         instanceMutex = new Mutex(true, $@"Local\GitVeltoApp-{Environment.UserName}", out bool first);
@@ -67,6 +87,19 @@ public partial class App : Application
         if (request != null) Handle(request);
         else if (!background) WindowManager.Shared.ShowSettings();
         ExitIfIdle();
+    }
+
+    /// <summary>
+    /// Fluent theme fix: selected DataGrid cells keep the normal (white in dark mode) text color on the light accent
+    /// background. Use the "text on accent" color instead.
+    /// </summary>
+    private void ApplyStyleFixes()
+    {
+        var cell = new Style(typeof(System.Windows.Controls.DataGridCell), TryFindResource(typeof(System.Windows.Controls.DataGridCell)) as Style);
+        var selected = new Trigger { Property = System.Windows.Controls.DataGridCell.IsSelectedProperty, Value = true };
+        selected.Setters.Add(new Setter(System.Windows.Controls.Control.ForegroundProperty, new DynamicResourceExtension("TextOnAccentFillColorPrimaryBrush")));
+        cell.Triggers.Add(selected);
+        Resources[typeof(System.Windows.Controls.DataGridCell)] = cell;
     }
 
     private static bool IsAskPassInvocation(string[] args) =>
@@ -123,13 +156,13 @@ public partial class App : Application
         {
             try
             {
+                // Let the running instance bring its window to the front (we got the foreground right from Explorer).
+                AllowSetForegroundWindow(-1);
                 using var c = new NamedPipeClientStream(".", PipeName, PipeDirection.Out);
                 c.Connect(500);
                 var json = JsonSerializer.SerializeToUtf8Bytes(r);
                 c.Write(json);
                 c.Flush();
-                // Let the running instance bring its window to the front.
-                AllowSetForegroundWindow(-1);
                 return true;
             }
             catch (TimeoutException) { }

@@ -14,6 +14,8 @@
   <ItemGroup>
     <Using Include="Xunit" />
     <ProjectReference Include="..\..\src\GitVelto.Core\GitVelto.Core.csproj" />
+    <!-- GitVeltoCache.exe is copied next to the tests: the shell extension test starts it. -->
+    <ProjectReference Include="..\..\src\GitVeltoCache\GitVeltoCache.csproj" />
   </ItemGroup>
 
 </Project>

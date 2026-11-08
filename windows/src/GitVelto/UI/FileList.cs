@@ -51,6 +51,8 @@ public sealed class FileList : DataGrid
 
     public FileList(bool checkable)
     {
+        // Subclasses do not receive the implicit (Fluent) style of their base type: apply it explicitly.
+        SetResourceReference(StyleProperty, typeof(DataGrid));
         AutoGenerateColumns = false;
         CanUserAddRows = false;
         CanUserDeleteRows = false;

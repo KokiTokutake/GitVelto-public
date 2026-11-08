@@ -2,6 +2,7 @@
   <Folder Name="/src/">
     <Project Path="src/GitVelto.Core/GitVelto.Core.csproj" />
     <Project Path="src/GitVelto/GitVelto.csproj" />
+    <Project Path="src/GitVeltoCache/GitVeltoCache.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/GitVelto.Tests/GitVelto.Tests.csproj" />

@@ -28,10 +28,15 @@ public sealed class RepoHeader : DockPanel
         right.Children.Add(branch);
         SetDock(right, Dock.Right);
         Children.Add(right);
-        var left = new StackPanel { Orientation = Orientation.Horizontal };
-        left.Children.Add(Ui.Glyph("", 13));
-        left.Children.Add(new TextBlock { Text = repo.Root, Foreground = Ui.Secondary(), Margin = new Thickness(6, 0, 0, 0), TextTrimming = TextTrimming.CharacterEllipsis, VerticalAlignment = VerticalAlignment.Center });
-        Children.Add(left);
+        // Folder glyph + path that trims with an ellipsis when space runs out (never overlaps the branch).
+        var glyph = Ui.Glyph("", 13);
+        SetDock(glyph, Dock.Left);
+        Children.Add(glyph);
+        Children.Add(new TextBlock
+        {
+            Text = repo.Root, ToolTip = repo.Root, Foreground = Ui.Secondary(), Margin = new Thickness(6, 0, 12, 0),
+            TextTrimming = TextTrimming.CharacterEllipsis, VerticalAlignment = VerticalAlignment.Center,
+        });
 
         void Handler(string root) { if (PathUtil.SamePath(root, repo.Root)) Dispatcher.BeginInvoke(Refresh); }
         Loaded += (_, _) => { WindowManager.RepoChanged -= Handler; WindowManager.RepoChanged += Handler; Refresh(); };
@@ -52,6 +57,8 @@ public sealed class RefPicker : ComboBox
 {
     public RefPicker(IEnumerable<RefInfo> refs, bool local = true, bool remote = true, bool tags = true)
     {
+        // Subclasses do not receive the implicit (Fluent) style of their base type: apply it explicitly.
+        SetResourceReference(StyleProperty, typeof(ComboBox));
         IsEditable = true;
         MinWidth = 220;
         IsTextSearchEnabled = true;
@@ -303,7 +310,12 @@ public static class ExternalTools
 public static class CacheClient
 {
     /// <summary>Asks the cache to recompute a repository (after GitVelto changed it).</summary>
-    public static void Invalidate(string root)
+    public static void Invalidate(string root) => Send("invalidate\t" + root);
+
+    /// <summary>Tells the cache that overlay settings (enabled / excluded folders) changed.</summary>
+    public static void SettingsChanged() => Send("settings");
+
+    private static void Send(string line)
     {
         Task.Run(() =>
         {
@@ -311,7 +323,7 @@ public static class CacheClient
             {
                 using var c = new System.IO.Pipes.NamedPipeClientStream(".", $"{KG.CachePipe}-{Environment.UserName}", System.IO.Pipes.PipeDirection.InOut);
                 c.Connect(200);
-                var msg = System.Text.Encoding.UTF8.GetBytes("invalidate\t" + root + "\n");
+                var msg = System.Text.Encoding.UTF8.GetBytes(line + "\n");
                 c.Write(msg);
                 c.Flush();
             }
