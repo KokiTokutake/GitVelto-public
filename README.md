@@ -1,4 +1,4 @@
-# GitGlide
+# GitVelto
 
 macOS の Finder に統合された、**TortoiseGit 風の Git クライアント**です（UI はすべて日本語）。
 Finder でファイルやフォルダを右クリックするだけで、コミット・ログ・差分・同期・ブランチ操作などを GUI ダイアログで行えます。
@@ -6,7 +6,7 @@ Finder 上のファイルには Git の状態を示すアイコンオーバー�
 
 ## TortoiseGit との機能対応
 
-| TortoiseGit | GitGlide (Finder 右クリック) | 備考 |
+| TortoiseGit | GitVelto (Finder 右クリック) | 備考 |
 | --- | --- | --- |
 | Git Sync… | Git 同期… | プル / フェッチ / フェッチ＆リベース / プッシュ / プル＆プッシュ、受信予定・送信予定のコミット一覧 |
 | Git Commit -> "branch"… | Git コミット -> "main"… | チェックしたファイルだけをコミット、amend、Signed-off-by、作成者・日時指定、新しいブランチでコミット、コミット後にプッシュ、最近のメッセージ |
@@ -37,7 +37,7 @@ Finder 上のファイルには Git の状態を示すアイコンオーバー�
 | Git Clone… / Create repository here… | Git クローン… / Git ここにリポジトリを作成… | ブランチ・深さ・サブモジュール・リモート名・--no-checkout・--bare |
 | Settings | 設定… / リポジトリの設定… / リモートの管理… | 下記参照 |
 | Git Bash here | ターミナルで開く | ターミナル / iTerm2 / Ghostty / Warp |
-| Help / About | ヘルプ / GitGlide について | |
+| Help / About | ヘルプ / GitVelto について | |
 
 ### 設定（TortoiseGit の Settings に相当）
 
@@ -49,7 +49,7 @@ Finder 上のファイルには Git の状態を示すアイコンオーバー�
 
 ### 日本語化
 
-UI はすべて日本語です。git 本体には日本語のメッセージカタログがないため、GitGlide が進捗ダイアログやエラー表示で **git の出力を日本語に変換**します（「原文 (英語) を表示」で切替可能）。
+UI はすべて日本語です。git 本体には日本語のメッセージカタログがないため、GitVelto が進捗ダイアログやエラー表示で **git の出力を日本語に変換**します（「原文 (英語) を表示」で切替可能）。
 
 ## 状態アイコン（オーバーレイ）
 
@@ -76,7 +76,7 @@ UI はすべて日本語です。git 本体には日本語のメッセージカ�
 ./build.sh install
 ```
 
-`build/GitGlide.app` をビルドし、`/Applications`（書き込めない場合は `~/Applications`）へコピーし、Finder 拡張を有効化（`pluginkit -e use`）して Finder を再起動します（Finder のウインドウは自動で復元されます）。
+`build/GitVelto.app` をビルドし、`/Applications`（書き込めない場合は `~/Applications`）へコピーし、Finder 拡張を有効化（`pluginkit -e use`）して Finder を再起動します（Finder のウインドウは自動で復元されます）。
 
 - ビルドのみ: `./build.sh`
 - Intel / Apple Silicon 両対応: `ARCH=universal ./build.sh`
@@ -84,24 +84,24 @@ UI はすべて日本語です。git 本体には日本語のメッセージカ�
 
 ### 初回起動時の許可
 
-外付けボリュームや「書類」「デスクトップ」上のリポジトリを扱うと、macOS が GitGlide へのアクセス許可を求めます。**「許可」を選んでください**（状態アイコンの計算やメニューの判定に必要です）。ad-hoc 署名ですが designated requirement を固定しているため、再ビルドしても許可は維持されます。
+外付けボリュームや「書類」「デスクトップ」上のリポジトリを扱うと、macOS が GitVelto へのアクセス許可を求めます。**「許可」を選んでください**（状態アイコンの計算やメニューの判定に必要です）。ad-hoc 署名ですが designated requirement を固定しているため、再ビルドしても許可は維持されます。
 
 ### Finder 拡張が表示されない場合
 
-1. GitGlide を起動する（メニューバーにアイコンが出ます）
-2. 「システム設定 > 一般 > ログイン項目と機能拡張」の Finder 拡張機能で **GitGlide** をオン
-   - またはターミナルで `pluginkit -e use -i com.ktoku.GitGlide.FinderSync`
+1. GitVelto を起動する（メニューバーにアイコンが出ます）
+2. 「システム設定 > 一般 > ログイン項目と機能拡張」の Finder 拡張機能で **GitVelto** をオン
+   - またはターミナルで `pluginkit -e use -i com.ktoku.GitVelto.FinderSync`
 3. `killall Finder` で Finder を再起動
-4. GitGlide の設定 > 一般 の「拡張機能の状態」が「有効」になっているか確認
+4. GitVelto の設定 > 一般 の「拡張機能の状態」が「有効」になっているか確認
 
-Finder が起動すると拡張が GitGlide 本体を自動で起動します（状態アイコンは本体が計算します）。
+Finder が起動すると拡張が GitVelto 本体を自動で起動します（状態アイコンは本体が計算します）。
 
 ### 他の Mac にコピーする場合
 
 ad-hoc 署名のため Gatekeeper にブロックされることがあります。
 
 ```bash
-xattr -dr com.apple.quarantine /Applications/GitGlide.app
+xattr -dr com.apple.quarantine /Applications/GitVelto.app
 ```
 
 ## 開発
@@ -111,19 +111,19 @@ xattr -dr com.apple.quarantine /Applications/GitGlide.app
 scripts/test.sh         # 機能テスト（サンプルリポジトリでコミット/リベース/競合解決/プッシュ等を実行）
 scripts/snapshot.sh     # 全ダイアログをオフスクリーン描画して build/snapshots/*.png に出力
 scripts/window-probe.sh # 全ダイアログを実ウインドウで 2 回ずつ開き、クラッシュがないか確認（画面に一瞬ウインドウが出ます）
-scripts/finder-e2e.sh   # インストール済みアプリに Finder メニューと同じ gitglide:// URL を送り、全操作のダイアログが開くか確認
+scripts/finder-e2e.sh   # インストール済みアプリに Finder メニューと同じ gitvelto:// URL を送り、全操作のダイアログが開くか確認
 scripts/make_test_repos.sh <dir>   # 動作確認用のサンプルリポジトリを作成
 ```
 
 ### アーキテクチャ
 
 ```
-GitGlide.app（非サンドボックス, LSUIElement）
-├── Contents/MacOS/GitGlide                     … GUI 本体 + 状態キャッシュ（TGitCache 相当）+ 認証ダイアログ
-└── Contents/PlugIns/GitGlideFinderSync.appex   … Finder Sync 拡張（サンドボックス）
+GitVelto.app（非サンドボックス, LSUIElement）
+├── Contents/MacOS/GitVelto                     … GUI 本体 + 状態キャッシュ（TGitCache 相当）+ 認証ダイアログ
+└── Contents/PlugIns/GitVeltoFinderSync.appex   … Finder Sync 拡張（サンドボックス）
 ```
 
-- **右クリック → 操作**: 拡張が `gitglide://<command>?path=...` URL を開き、本体が対応するダイアログを表示します。
+- **右クリック → 操作**: 拡張が `gitvelto://<command>?path=...` URL を開き、本体が対応するダイアログを表示します。
 - **状態アイコン**: Finder がフォルダを表示すると、拡張が Distributed Notification でパスを本体へ送ります。本体は `git status --porcelain -z --ignored` の結果をリポジトリ単位でキャッシュし、子要素ごとの状態を JSON で返します。FSEvents で作業ツリーを監視し、変更があれば再計算して差分だけを送ります。
 - **メニュー構成**: 本体の設定を Distributed Notification で拡張へ配信し、拡張側でも保存します。
 - **認証**: git/ssh がパスワードを求めると、本体の実行ファイルが `GIT_ASKPASS` / `SSH_ASKPASS` として起動され、入力ダイアログを表示します。HTTPS は osxkeychain ヘルパーがあればキーチェーンを利用します。
@@ -146,7 +146,7 @@ GitGlide.app（非サンドボックス, LSUIElement）
 ## アンインストール
 
 ```bash
-pluginkit -e ignore -i com.ktoku.GitGlide.FinderSync
-pkill -x GitGlide; rm -rf /Applications/GitGlide.app
+pluginkit -e ignore -i com.ktoku.GitVelto.FinderSync
+pkill -x GitVelto; rm -rf /Applications/GitVelto.app
 killall Finder
 ```

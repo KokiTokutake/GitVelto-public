@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 import os
 
-private let wlog = Logger(subsystem: "com.ktoku.GitGlide", category: "Window")
+private let wlog = Logger(subsystem: "com.ktoku.GitVelto", category: "Window")
 
 /// Lets SwiftUI content close its hosting window.
 final class WindowHandle: ObservableObject {
@@ -122,7 +122,7 @@ final class WindowManager: NSObject, NSWindowDelegate {
             StatusService.shared.invalidate(path: dir)
             onFinish?(ok)
         }
-        show("GitGlide - \(title)", size: NSSize(width: 640, height: 400), minSize: NSSize(width: 420, height: 240)) { _ in
+        show("GitVelto - \(title)", size: NSSize(width: 640, height: 400), minSize: NSSize(width: 420, height: 240)) { _ in
             ProgressOutputView(title: title, runner: runner, successActions: successActions)
         }
         runner.start()
@@ -131,7 +131,7 @@ final class WindowManager: NSObject, NSWindowDelegate {
     // MARK: - Dispatch
 
     func showSettings() {
-        show("GitGlide 設定", size: NSSize(width: 680, height: 560), key: "settings") { _ in SettingsView() }
+        show("GitVelto 設定", size: NSSize(width: 680, height: 560), key: "settings") { _ in SettingsView() }
     }
 
     private func baseDir(_ path: String?) -> String {
@@ -153,18 +153,18 @@ final class WindowManager: NSObject, NSWindowDelegate {
         case .settings:
             showSettings(); return
         case .about:
-            show("GitGlide について", size: NSSize(width: 420, height: 300), key: "about") { _ in AboutView() }
+            show("GitVelto について", size: NSSize(width: 420, height: 300), key: "about") { _ in AboutView() }
             return
         case .help:
-            show("GitGlide ヘルプ", size: NSSize(width: 640, height: 620), key: "help") { _ in HelpView() }
+            show("GitVelto ヘルプ", size: NSSize(width: 640, height: 620), key: "help") { _ in HelpView() }
             return
         case .clone:
             let dir = baseDir(paths.first)
-            show("GitGlide - クローン", size: NSSize(width: 560, height: 330)) { _ in CloneView(parentDir: dir) }
+            show("GitVelto - クローン", size: NSSize(width: 560, height: 330)) { _ in CloneView(parentDir: dir) }
             return
         case .initRepo:
             let dir = baseDir(paths.first)
-            show("GitGlide - リポジトリを作成", size: NSSize(width: 480, height: 240)) { _ in InitRepoView(dir: dir) }
+            show("GitVelto - リポジトリを作成", size: NSSize(width: 480, height: 240)) { _ in InitRepoView(dir: dir) }
             return
         case .terminal:
             openTerminal(baseDir(paths.first)); return
@@ -185,14 +185,14 @@ final class WindowManager: NSObject, NSWindowDelegate {
 
         switch action {
         case .sync:
-            show("GitGlide - 同期 - \(name)", size: NSSize(width: 820, height: 600), minSize: NSSize(width: 640, height: 440)) { _ in SyncView(repo: repo) }
+            show("GitVelto - 同期 - \(name)", size: NSSize(width: 820, height: 600), minSize: NSSize(width: 640, height: 440)) { _ in SyncView(repo: repo) }
         case .commit:
-            show("GitGlide - コミット - \(name)", size: NSSize(width: 780, height: 740), minSize: NSSize(width: 600, height: 520)) { _ in
+            show("GitVelto - コミット - \(name)", size: NSSize(width: 780, height: 740), minSize: NSSize(width: 600, height: 520)) { _ in
                 CommitView(repo: repo, paths: paths)
             }
         case .log:
             let filter = paths.filter { $0.trimmedPath != repo.root }
-            show("GitGlide - ログ - \(name)", size: NSSize(width: 1080, height: 760), minSize: NSSize(width: 700, height: 500)) { _ in
+            show("GitVelto - ログ - \(name)", size: NSSize(width: 1080, height: 760), minSize: NSSize(width: 700, height: 500)) { _ in
                 LogView(repo: repo, paths: filter)
             }
         case .diff:
@@ -204,12 +204,12 @@ final class WindowManager: NSObject, NSWindowDelegate {
                 }
                 showDiff(repo: repo, source: .workingTree(path: e.path, origPath: e.origPath, state: e.state))
             } else {
-                show("GitGlide - 変更をチェック - \(name)", size: NSSize(width: 820, height: 560)) { _ in
+                show("GitVelto - 変更をチェック - \(name)", size: NSSize(width: 820, height: 560)) { _ in
                     StatusView(repo: repo, paths: paths)
                 }
             }
         case .status:
-            show("GitGlide - 変更をチェック - \(name)", size: NSSize(width: 820, height: 560)) { _ in
+            show("GitVelto - 変更をチェック - \(name)", size: NSSize(width: 820, height: 560)) { _ in
                 StatusView(repo: repo, paths: paths)
             }
         case .diffPrevious:
@@ -221,15 +221,15 @@ final class WindowManager: NSObject, NSWindowDelegate {
             showDiff(repo: repo, source: hasParent ? .revToWorking(rev: "\(last)^", path: rel) : .commit(hash: last, parent: nil, path: rel, oldPath: nil))
         case .repoBrowser:
             let rel = single.map { isDirectory($0) ? repo.relative($0) : (repo.relative($0) as NSString).deletingLastPathComponent } ?? ""
-            show("GitGlide - リポジトリブラウザ - \(name)", size: NSSize(width: 760, height: 560)) { _ in RepoBrowserView(repo: repo, path: rel) }
+            show("GitVelto - リポジトリブラウザ - \(name)", size: NSSize(width: 760, height: 560)) { _ in RepoBrowserView(repo: repo, path: rel) }
         case .reflog:
-            show("GitGlide - Reflog - \(name)", size: NSSize(width: 780, height: 520)) { _ in ReflogView(repo: repo) }
+            show("GitVelto - Reflog - \(name)", size: NSSize(width: 780, height: 520)) { _ in ReflogView(repo: repo) }
         case .refBrowser:
-            show("GitGlide - 参照の一覧 - \(name)", size: NSSize(width: 960, height: 560)) { _ in RefBrowserView(repo: repo) }
+            show("GitVelto - 参照の一覧 - \(name)", size: NSSize(width: 960, height: 560)) { _ in RefBrowserView(repo: repo) }
         case .rebase:
-            show("GitGlide - リベース - \(name)", size: NSSize(width: 780, height: 560)) { _ in RebaseView(repo: repo, initialUpstream: nil) }
+            show("GitVelto - リベース - \(name)", size: NSSize(width: 780, height: 560)) { _ in RebaseView(repo: repo, initialUpstream: nil) }
         case .bisectStart:
-            show("GitGlide - 二分探索 - \(name)", size: NSSize(width: 520, height: 300)) { _ in BisectStartView(repo: repo) }
+            show("GitVelto - 二分探索 - \(name)", size: NSSize(width: 520, height: 300)) { _ in BisectStartView(repo: repo) }
         case .bisectGood, .bisectBad, .bisectSkip, .bisectReset:
             let verb = [GitAction.bisectGood: "good", .bisectBad: "bad", .bisectSkip: "skip", .bisectReset: "reset"][action]!
             runProgress(action.title, dir: repo.root, steps: [.git(["bisect", verb])])
@@ -238,73 +238,73 @@ final class WindowManager: NSObject, NSWindowDelegate {
             if !AppSettings.shared.externalMerge.isEmpty {
                 ExternalTools.merge(repo: repo, path: p)
             } else {
-                show("GitGlide - 競合の編集 - \((p as NSString).lastPathComponent)", size: NSSize(width: 1000, height: 760)) { _ in ConflictEditorView(repo: repo, path: p) }
+                show("GitVelto - 競合の編集 - \((p as NSString).lastPathComponent)", size: NSSize(width: 1000, height: 760)) { _ in ConflictEditorView(repo: repo, path: p) }
             }
         case .deleteKeep:
-            show("GitGlide - 削除 (ローカルに残す) - \(name)", size: NSSize(width: 560, height: 360)) { _ in DeleteView(repo: repo, paths: paths, keepLocalDefault: true) }
+            show("GitVelto - 削除 (ローカルに残す) - \(name)", size: NSSize(width: 560, height: 360)) { _ in DeleteView(repo: repo, paths: paths, keepLocalDefault: true) }
         case .submoduleAdd:
             let dir = baseDir(paths.first)
-            show("GitGlide - サブモジュールを追加 - \(name)", size: NSSize(width: 540, height: 260)) { _ in SubmoduleAddView(repo: repo, dir: dir) }
+            show("GitVelto - サブモジュールを追加 - \(name)", size: NSSize(width: 540, height: 260)) { _ in SubmoduleAddView(repo: repo, dir: dir) }
         case .submoduleUpdate:
-            show("GitGlide - サブモジュールを更新 - \(name)", size: NSSize(width: 640, height: 440)) { _ in SubmoduleUpdateView(repo: repo) }
+            show("GitVelto - サブモジュールを更新 - \(name)", size: NSSize(width: 640, height: 440)) { _ in SubmoduleUpdateView(repo: repo) }
         case .submoduleSync:
             runProgress("サブモジュールを同期", dir: repo.root, steps: [.git(["submodule", "sync", "--recursive"])])
         case .createPatch:
-            show("GitGlide - パッチを作成 - \(name)", size: NSSize(width: 520, height: 360)) { _ in CreatePatchView(repo: repo) }
+            show("GitVelto - パッチを作成 - \(name)", size: NSSize(width: 520, height: 360)) { _ in CreatePatchView(repo: repo) }
         case .applyPatch:
             let patches = paths.filter { ["patch", "diff"].contains(($0 as NSString).pathExtension.lowercased()) }
-            show("GitGlide - パッチを適用 - \(name)", size: NSSize(width: 640, height: 460)) { _ in ApplyPatchView(repo: repo, files: patches) }
+            show("GitVelto - パッチを適用 - \(name)", size: NSSize(width: 640, height: 460)) { _ in ApplyPatchView(repo: repo, files: patches) }
         case .export:
-            show("GitGlide - エクスポート - \(name)", size: NSSize(width: 520, height: 300)) { _ in ExportView(repo: repo) }
+            show("GitVelto - エクスポート - \(name)", size: NSSize(width: 520, height: 300)) { _ in ExportView(repo: repo) }
         case .remotes:
-            show("GitGlide - リモートの管理 - \(name)", size: NSSize(width: 640, height: 360)) { _ in RemotesView(repo: repo).padding(10) }
+            show("GitVelto - リモートの管理 - \(name)", size: NSSize(width: 640, height: 360)) { _ in RemotesView(repo: repo).padding(10) }
         case .repoSettings:
-            show("GitGlide - リポジトリの設定 - \(name)", size: NSSize(width: 680, height: 480)) { _ in RepoSettingsView(repo: repo) }
+            show("GitVelto - リポジトリの設定 - \(name)", size: NSSize(width: 680, height: 480)) { _ in RepoSettingsView(repo: repo) }
         case .pull:
-            show("GitGlide - プル - \(name)", size: NSSize(width: 520, height: 330)) { _ in RemoteOpView(repo: repo, mode: .pull) }
+            show("GitVelto - プル - \(name)", size: NSSize(width: 520, height: 330)) { _ in RemoteOpView(repo: repo, mode: .pull) }
         case .fetch:
-            show("GitGlide - フェッチ - \(name)", size: NSSize(width: 520, height: 300)) { _ in RemoteOpView(repo: repo, mode: .fetch) }
+            show("GitVelto - フェッチ - \(name)", size: NSSize(width: 520, height: 300)) { _ in RemoteOpView(repo: repo, mode: .fetch) }
         case .push:
-            show("GitGlide - プッシュ - \(name)", size: NSSize(width: 540, height: 380)) { _ in RemoteOpView(repo: repo, mode: .push) }
+            show("GitVelto - プッシュ - \(name)", size: NSSize(width: 540, height: 380)) { _ in RemoteOpView(repo: repo, mode: .push) }
         case .switchBranch:
-            show("GitGlide - 切り替え/チェックアウト - \(name)", size: NSSize(width: 520, height: 360)) { _ in SwitchView(repo: repo) }
+            show("GitVelto - 切り替え/チェックアウト - \(name)", size: NSSize(width: 520, height: 360)) { _ in SwitchView(repo: repo) }
         case .branch:
-            show("GitGlide - ブランチを作成 - \(name)", size: NSSize(width: 520, height: 340)) { _ in CreateRefView(repo: repo, kind: .branch, base: nil) }
+            show("GitVelto - ブランチを作成 - \(name)", size: NSSize(width: 520, height: 340)) { _ in CreateRefView(repo: repo, kind: .branch, base: nil) }
         case .tag:
-            show("GitGlide - タグを作成 - \(name)", size: NSSize(width: 520, height: 400)) { _ in CreateRefView(repo: repo, kind: .tag, base: nil) }
+            show("GitVelto - タグを作成 - \(name)", size: NSSize(width: 520, height: 400)) { _ in CreateRefView(repo: repo, kind: .tag, base: nil) }
         case .merge:
-            show("GitGlide - マージ - \(name)", size: NSSize(width: 520, height: 420)) { _ in MergeView(repo: repo) }
+            show("GitVelto - マージ - \(name)", size: NSSize(width: 520, height: 420)) { _ in MergeView(repo: repo) }
         case .stashSave:
-            show("GitGlide - 変更を退避 - \(name)", size: NSSize(width: 480, height: 230)) { _ in StashSaveView(repo: repo) }
+            show("GitVelto - 変更を退避 - \(name)", size: NSSize(width: 480, height: 230)) { _ in StashSaveView(repo: repo) }
         case .stashPop:
             runProgress("退避した変更を復元", dir: repo.root, steps: [.git(["stash", "pop"])])
         case .stashList:
-            show("GitGlide - 退避リスト - \(name)", size: NSSize(width: 760, height: 520)) { _ in StashListView(repo: repo) }
+            show("GitVelto - 退避リスト - \(name)", size: NSSize(width: 760, height: 520)) { _ in StashListView(repo: repo) }
         case .add:
-            show("GitGlide - 追加 - \(name)", size: NSSize(width: 700, height: 480)) { _ in FileActionView(repo: repo, paths: paths, mode: .add) }
+            show("GitVelto - 追加 - \(name)", size: NSSize(width: 700, height: 480)) { _ in FileActionView(repo: repo, paths: paths, mode: .add) }
         case .revert:
-            show("GitGlide - 元に戻す - \(name)", size: NSSize(width: 700, height: 480)) { _ in FileActionView(repo: repo, paths: paths, mode: .revert) }
+            show("GitVelto - 元に戻す - \(name)", size: NSSize(width: 700, height: 480)) { _ in FileActionView(repo: repo, paths: paths, mode: .revert) }
         case .resolve:
-            show("GitGlide - 競合を解決 - \(name)", size: NSSize(width: 700, height: 480)) { _ in FileActionView(repo: repo, paths: paths, mode: .resolve) }
+            show("GitVelto - 競合を解決 - \(name)", size: NSSize(width: 700, height: 480)) { _ in FileActionView(repo: repo, paths: paths, mode: .resolve) }
         case .delete:
-            show("GitGlide - 削除 - \(name)", size: NSSize(width: 560, height: 360)) { _ in DeleteView(repo: repo, paths: paths) }
+            show("GitVelto - 削除 - \(name)", size: NSSize(width: 560, height: 360)) { _ in DeleteView(repo: repo, paths: paths) }
         case .rename:
             guard let p = single else { return }
-            show("GitGlide - 名前の変更 - \(name)", size: NSSize(width: 520, height: 180)) { _ in RenameView(repo: repo, path: p) }
+            show("GitVelto - 名前の変更 - \(name)", size: NSSize(width: 520, height: 180)) { _ in RenameView(repo: repo, path: p) }
         case .ignore:
-            show("GitGlide - 無視リストに追加 - \(name)", size: NSSize(width: 560, height: 360)) { _ in IgnoreView(repo: repo, paths: paths) }
+            show("GitVelto - 無視リストに追加 - \(name)", size: NSSize(width: 560, height: 360)) { _ in IgnoreView(repo: repo, paths: paths) }
         case .blame:
             guard let p = single else { return }
-            show("GitGlide - Blame - \((p as NSString).lastPathComponent)", size: NSSize(width: 1000, height: 720)) { _ in BlameView(repo: repo, path: p) }
+            show("GitVelto - Blame - \((p as NSString).lastPathComponent)", size: NSSize(width: 1000, height: 720)) { _ in BlameView(repo: repo, path: p) }
         case .clean:
-            show("GitGlide - クリーンアップ - \(name)", size: NSSize(width: 700, height: 520)) { _ in CleanView(repo: repo, paths: paths) }
+            show("GitVelto - クリーンアップ - \(name)", size: NSSize(width: 700, height: 520)) { _ in CleanView(repo: repo, paths: paths) }
         default:
             break
         }
     }
 
     func showDiff(repo: Repo, source: DiffSource) {
-        show("GitGlide - 差分 - \((source.path as NSString).lastPathComponent)", size: NSSize(width: 1000, height: 720),
+        show("GitVelto - 差分 - \((source.path as NSString).lastPathComponent)", size: NSSize(width: 1000, height: 720),
              minSize: NSSize(width: 500, height: 300)) { _ in
             DiffView(repo: repo, source: source)
         }

@@ -16,6 +16,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         buildMainMenu()
         updateStatusItem()
         StatusService.shared.start()
+        // Restore the login item after a rename/migration when the user had it enabled.
+        if UserDefaults.standard.bool(forKey: "launchAtLoginPreferred") && !AppDelegate.launchAtLogin {
+            AppDelegate.launchAtLogin = true
+        }
         // Launched directly by the user (not by Finder via URL) -> show the welcome/settings window.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
             if !self.receivedURL && !Self.launchedAsLoginItem {
@@ -48,7 +52,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
               let host = comps.host,
               let action = GitAction(rawValue: host) else { return }
         let paths = (comps.queryItems ?? []).filter { $0.name == "path" }.compactMap { $0.value }
-        NSLog("GitGlide: URL action %@ (%d paths)", action.rawValue, paths.count)
+        NSLog("GitVelto: URL action %@ (%d paths)", action.rawValue, paths.count)
         WindowManager.shared.perform(action, paths: paths)
     }
 
@@ -58,13 +62,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let main = NSMenu()
 
         let appItem = NSMenuItem()
-        let appMenu = NSMenu(title: "GitGlide")
-        appMenu.addItem(withTitle: "GitGlide について", action: #selector(showAbout), keyEquivalent: "")
+        let appMenu = NSMenu(title: "GitVelto")
+        appMenu.addItem(withTitle: "GitVelto について", action: #selector(showAbout), keyEquivalent: "")
         appMenu.addItem(.separator())
         appMenu.addItem(withTitle: "設定…", action: #selector(showSettings), keyEquivalent: ",")
         appMenu.addItem(.separator())
-        appMenu.addItem(withTitle: "GitGlide を隠す", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
-        appMenu.addItem(withTitle: "GitGlide を終了", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        appMenu.addItem(withTitle: "GitVelto を隠す", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
+        appMenu.addItem(withTitle: "GitVelto を終了", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         appItem.submenu = appMenu
         main.addItem(appItem)
 
@@ -92,7 +96,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let helpItem = NSMenuItem()
         let help = NSMenu(title: "ヘルプ")
-        help.addItem(withTitle: "GitGlide ヘルプ", action: #selector(showHelp), keyEquivalent: "?")
+        help.addItem(withTitle: "GitVelto ヘルプ", action: #selector(showHelp), keyEquivalent: "?")
         helpItem.submenu = help
 
         let winItem = NSMenuItem()
@@ -111,7 +115,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if AppSettings.shared.showMenuBarIcon {
             guard statusItem == nil else { return }
             let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-            item.button?.image = NSImage(systemSymbolName: "arrow.triangle.branch", accessibilityDescription: "GitGlide")
+            item.button?.image = NSImage(systemSymbolName: "arrow.triangle.branch", accessibilityDescription: "GitVelto")
             let menu = NSMenu()
             menu.addItem(withTitle: "リポジトリのログを開く…", action: #selector(openRepository), keyEquivalent: "")
             menu.addItem(withTitle: "変更をチェック…", action: #selector(openStatus), keyEquivalent: "")
@@ -120,7 +124,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             menu.addItem(.separator())
             menu.addItem(withTitle: "設定…", action: #selector(showSettings), keyEquivalent: ",")
             menu.addItem(withTitle: "ヘルプ", action: #selector(showHelp), keyEquivalent: "")
-            menu.addItem(withTitle: "GitGlide について", action: #selector(showAbout), keyEquivalent: "")
+            menu.addItem(withTitle: "GitVelto について", action: #selector(showAbout), keyEquivalent: "")
             menu.addItem(.separator())
             menu.addItem(withTitle: "終了", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
             for mi in menu.items where mi.action != #selector(NSApplication.terminate(_:)) { mi.target = self }
@@ -165,10 +169,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     static var launchAtLogin: Bool {
         get { SMAppService.mainApp.status == .enabled }
         set {
+            UserDefaults.standard.set(newValue, forKey: "launchAtLoginPreferred")
             do {
                 if newValue { try SMAppService.mainApp.register() } else { try SMAppService.mainApp.unregister() }
             } catch {
-                NSLog("GitGlide: login item error \(error)")
+                NSLog("GitVelto: login item error \(error)")
             }
         }
     }
@@ -185,7 +190,7 @@ enum AskPass {
         let isConfirm = lower.contains("yes/no")
 
         let alert = NSAlert()
-        alert.messageText = "GitGlide - 認証"
+        alert.messageText = "GitVelto - 認証"
         alert.informativeText = prompt.isEmpty ? "入力してください" : prompt
         alert.addButton(withTitle: "OK")
         alert.addButton(withTitle: "キャンセル")

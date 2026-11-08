@@ -2,7 +2,7 @@ import Foundation
 import CoreServices
 import os
 
-private let slog = Logger(subsystem: "com.ktoku.GitGlide", category: "Status")
+private let slog = Logger(subsystem: "com.ktoku.GitVelto", category: "Status")
 
 /// Snapshot of one repository's working-tree state, used to compute Finder badges.
 struct RepoSnapshot {
@@ -102,9 +102,9 @@ final class FSWatcher {
 final class StatusService {
     static let shared = StatusService()
 
-    private let q = DispatchQueue(label: "gitglide.status")
+    private let q = DispatchQueue(label: "gitvelto.status")
     /// Directory scans: unbounded so one folder waiting on a privacy prompt never blocks the others.
-    private let scanQ = DispatchQueue(label: "gitglide.status.scan", qos: .utility, attributes: .concurrent)
+    private let scanQ = DispatchQueue(label: "gitvelto.status.scan", qos: .utility, attributes: .concurrent)
     private let workQ: OperationQueue = {
         let q = OperationQueue()
         q.maxConcurrentOperationCount = 4

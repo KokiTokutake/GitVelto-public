@@ -30,7 +30,7 @@ enum KGTemp {
         candidates.append(FileManager.default.temporaryDirectory)
         candidates.append(URL(fileURLWithPath: "/tmp"))
         for base in candidates {
-            let d = base.appendingPathComponent("GitGlide", isDirectory: true)
+            let d = base.appendingPathComponent("GitVelto", isDirectory: true)
             try? FileManager.default.createDirectory(at: d, withIntermediateDirectories: true)
             let probe = d.appendingPathComponent(".probe-\(UUID().uuidString)")
             if (try? Data().write(to: probe)) != nil {
@@ -68,7 +68,7 @@ enum Git {
             env["SSH_ASKPASS"] = exe
             env["SSH_ASKPASS_REQUIRE"] = "force"
             env["DISPLAY"] = env["DISPLAY"] ?? ":0"
-            env["GITGLIDE_ASKPASS"] = "1"
+            env["GITVELTO_ASKPASS"] = "1"
         }
         env["LC_ALL"] = "en_US.UTF-8"
         env["LANG"] = "en_US.UTF-8"

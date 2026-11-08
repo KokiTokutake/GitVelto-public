@@ -1,8 +1,8 @@
 #!/bin/bash
-# Builds GitGlide.app (main app + embedded Finder Sync extension) without Xcode.
+# Builds GitVelto.app (main app + embedded Finder Sync extension) without Xcode.
 # Requires only the Command Line Tools (swiftc, codesign).
 #
-#   ./build.sh            # release build into build/GitGlide.app
+#   ./build.sh            # release build into build/GitVelto.app
 #   ./build.sh install    # build, copy to /Applications (or ~/Applications) and enable the extension
 set -euo pipefail
 
@@ -13,8 +13,8 @@ BUILD_NUMBER="$(date +%Y%m%d%H%M)"
 ARCH="${ARCH:-$(uname -m)}"
 MIN_OS="14.0"
 BUILD="$ROOT/build"
-APP="$BUILD/GitGlide.app"
-APPEX="$APP/Contents/PlugIns/GitGlideFinderSync.appex"
+APP="$BUILD/GitVelto.app"
+APPEX="$APP/Contents/PlugIns/GitVeltoFinderSync.appex"
 SIGN_ID="${SIGN_ID:--}"   # "-" = ad-hoc. Set SIGN_ID="Apple Development: ..." to use a real certificate.
 
 export TMPDIR="${TMPDIR:-/tmp}"
@@ -29,11 +29,11 @@ build_arch() {
     local arch="$1" out_app="$2" out_ext="$3"
     local target="$arch-apple-macos$MIN_OS"
     echo "==> Compiling app ($arch)"
-    "${SWIFTC[@]}" -target "$target" -module-name GitGlide \
+    "${SWIFTC[@]}" -target "$target" -module-name GitVelto \
         Sources/Shared/*.swift Sources/App/*.swift Sources/App/Core/*.swift Sources/App/UI/*.swift \
         -o "$out_app"
     echo "==> Compiling Finder Sync extension ($arch)"
-    "${SWIFTC[@]}" -target "$target" -module-name GitGlideFinderSync -application-extension \
+    "${SWIFTC[@]}" -target "$target" -module-name GitVeltoFinderSync -application-extension \
         -Xlinker -e -Xlinker _NSExtensionMain \
         Sources/Shared/*.swift Sources/FinderSync/*.swift \
         -o "$out_ext"
@@ -43,12 +43,12 @@ rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources" "$APPEX/Contents/MacOS"
 
 if [ "$ARCH" = "universal" ]; then
-    build_arch arm64 "$BUILD/GitGlide-arm64" "$BUILD/GitGlideFinderSync-arm64"
-    build_arch x86_64 "$BUILD/GitGlide-x86_64" "$BUILD/GitGlideFinderSync-x86_64"
-    lipo -create "$BUILD/GitGlide-arm64" "$BUILD/GitGlide-x86_64" -output "$APP/Contents/MacOS/GitGlide"
-    lipo -create "$BUILD/GitGlideFinderSync-arm64" "$BUILD/GitGlideFinderSync-x86_64" -output "$APPEX/Contents/MacOS/GitGlideFinderSync"
+    build_arch arm64 "$BUILD/GitVelto-arm64" "$BUILD/GitVeltoFinderSync-arm64"
+    build_arch x86_64 "$BUILD/GitVelto-x86_64" "$BUILD/GitVeltoFinderSync-x86_64"
+    lipo -create "$BUILD/GitVelto-arm64" "$BUILD/GitVelto-x86_64" -output "$APP/Contents/MacOS/GitVelto"
+    lipo -create "$BUILD/GitVeltoFinderSync-arm64" "$BUILD/GitVeltoFinderSync-x86_64" -output "$APPEX/Contents/MacOS/GitVeltoFinderSync"
 else
-    build_arch "$ARCH" "$APP/Contents/MacOS/GitGlide" "$APPEX/Contents/MacOS/GitGlideFinderSync"
+    build_arch "$ARCH" "$APP/Contents/MacOS/GitVelto" "$APPEX/Contents/MacOS/GitVeltoFinderSync"
 fi
 
 echo "==> Bundling"
@@ -72,8 +72,8 @@ echo "==> Signing ($SIGN_ID)"
 # A stable designated requirement keeps macOS privacy permissions (TCC) valid across rebuilds,
 # which an ad-hoc cdhash-based requirement would not.
 if [ "$SIGN_ID" = "-" ]; then
-    EXT_REQ=(--requirements '=designated => identifier "com.ktoku.GitGlide.FinderSync"')
-    APP_REQ=(--requirements '=designated => identifier "com.ktoku.GitGlide"')
+    EXT_REQ=(--requirements '=designated => identifier "com.ktoku.GitVelto.FinderSync"')
+    APP_REQ=(--requirements '=designated => identifier "com.ktoku.GitVelto"')
 else
     EXT_REQ=(); APP_REQ=()
 fi
@@ -88,17 +88,17 @@ if [ "${1:-}" = "install" ]; then
     mkdir -p "$DEST"
     echo "==> Installing to $DEST"
     FIRST_INSTALL=1
-    pluginkit -m -i com.ktoku.GitGlide.FinderSync 2>/dev/null | grep -q GitGlide && FIRST_INSTALL=0
-    pkill -x GitGlide 2>/dev/null || true
-    rm -rf "$DEST/GitGlide.app"
+    pluginkit -m -i com.ktoku.GitVelto.FinderSync 2>/dev/null | grep -q GitVelto && FIRST_INSTALL=0
+    pkill -x GitVelto 2>/dev/null || true
+    rm -rf "$DEST/GitVelto.app"
     cp -R "$APP" "$DEST/"
-    /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f "$DEST/GitGlide.app" || true
-    pluginkit -a "$DEST/GitGlide.app/Contents/PlugIns/GitGlideFinderSync.appex" || true
-    pluginkit -e use -i com.ktoku.GitGlide.FinderSync || true
-    open "$DEST/GitGlide.app"
+    /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f "$DEST/GitVelto.app" || true
+    pluginkit -a "$DEST/GitVelto.app/Contents/PlugIns/GitVeltoFinderSync.appex" || true
+    pluginkit -e use -i com.ktoku.GitVelto.FinderSync || true
+    open "$DEST/GitVelto.app"
     # Finder only loads the new extension binary after a restart (windows are restored automatically).
-    pkill -f GitGlideFinderSync.appex 2>/dev/null || true
+    pkill -f GitVeltoFinderSync.appex 2>/dev/null || true
     killall Finder 2>/dev/null || true
     [ "$FIRST_INSTALL" = "1" ] && echo "==> 初回インストール: Finder 拡張を有効化しました"
-    echo "==> Installed. Finder を右クリックして GitGlide メニューを確認してください。"
+    echo "==> Installed. Finder を右クリックして GitVelto メニューを確認してください。"
 fi

@@ -165,14 +165,14 @@ struct BlameView: View {
                             let parent = repo.git(["rev-parse", "\(h)^"]).out.trimmingCharacters(in: .whitespacesAndNewlines)
                             let files = parent.isEmpty ? [] : repo.changedFiles(from: parent, to: h)
                             let repo = repo
-                            WindowManager.shared.show("GitGlide - \(h.prefix(8)) \(c.summary)", size: NSSize(width: 640, height: 480)) { _ in
+                            WindowManager.shared.show("GitVelto - \(h.prefix(8)) \(c.summary)", size: NSSize(width: 640, height: 480)) { _ in
                                 ChangedFilesView(repo: repo, files: files, from: parent, to: h)
                             }
                         }
                     }
                     Button("この行より前の Blame") {
                         let repo = repo, p = path
-                        WindowManager.shared.show("GitGlide - Blame - \(h.prefix(8))^", size: NSSize(width: 1000, height: 720)) { _ in
+                        WindowManager.shared.show("GitVelto - Blame - \(h.prefix(8))^", size: NSSize(width: 1000, height: 720)) { _ in
                             BlameView(repo: repo, path: p, revision: "\(h)^")
                         }
                     }
@@ -301,7 +301,7 @@ struct SettingsView: View {
                         try? p.run()
                     }
                 }
-                Text("Finder で右クリック → 「Git 同期…」「Git コミット…」「GitGlide ▸」から操作できます。メニューが出ない場合は「システム設定 > 一般 > ログイン項目と機能拡張」の Finder 拡張機能で GitGlide を有効にしてください。")
+                Text("Finder で右クリック → 「Git 同期…」「Git コミット…」「GitVelto ▸」から操作できます。メニューが出ない場合は「システム設定 > 一般 > ログイン項目と機能拡張」の Finder 拡張機能で GitVelto を有効にしてください。")
                     .font(.caption).foregroundStyle(.secondary)
             }
             Section("一般") {
@@ -545,7 +545,7 @@ struct AboutView: View {
     var body: some View {
         VStack(spacing: 10) {
             Image(nsImage: NSApp.applicationIconImage).resizable().frame(width: 96, height: 96)
-            Text("GitGlide").font(.title).bold()
+            Text("GitVelto").font(.title).bold()
             Text("バージョン \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "-")")
                 .foregroundStyle(.secondary)
             Text("Finder に統合された Git クライアント").font(.callout)

@@ -1,4 +1,4 @@
-// Off-screen snapshot harness: renders every GitGlide dialog into PNG files without showing windows.
+// Off-screen snapshot harness: renders every GitVelto dialog into PNG files without showing windows.
 //   build: see scripts/snapshot.sh
 //   run:   snapshot <test-repos-dir> <out-dir> [filter]
 import AppKit

@@ -310,9 +310,12 @@ struct SubmoduleAddView: View {
                 Spacer()
                 Button("キャンセル") { handle.close() }.keyboardShortcut(.cancelAction)
                 Button("追加") {
-                    var args = ["submodule", "add", "--progress"]
+                    let u = url.trimmingCharacters(in: .whitespaces)
+                    let local = u.hasPrefix("/") || u.hasPrefix("file://") || u.hasPrefix(".") || u.hasPrefix("~")
+                    // Recent git refuses local-path submodules unless the file transport is allowed explicitly.
+                    var args = (local ? ["-c", "protocol.file.allow=always"] : []) + ["submodule", "add", "--progress"]
                     if !branch.isEmpty { args += ["-b", branch] }
-                    args += ["--", url, path]
+                    args += ["--", (u as NSString).expandingTildeInPath, path]
                     WindowManager.shared.runProgress("サブモジュールを追加", dir: repo.root, steps: [.git(args)])
                     handle.close()
                 }.keyboardShortcut(.defaultAction).disabled(url.isEmpty || path.isEmpty)
@@ -356,7 +359,7 @@ struct SubmoduleUpdateView: View {
                 Spacer()
                 Button("キャンセル") { handle.close() }.keyboardShortcut(.cancelAction)
                 Button("更新") {
-                    var args = ["submodule", "update", "--progress"]
+                    var args = ["-c", "protocol.file.allow=always", "submodule", "update", "--progress"]
                     if initialize { args.append("--init") }
                     if recursive { args.append("--recursive") }
                     if remote { args.append("--remote") }
@@ -563,8 +566,8 @@ func openInTextEditor(_ path: String) {
 struct HelpView: View {
     private struct Topic: Identifiable { let id = UUID(); let title: String; let symbol: String; let text: String }
     private let topics: [Topic] = [
-        Topic(title: "基本的な使い方", symbol: "cursorarrow.click.2", text: "Finder でファイルやフォルダを右クリックすると「Git 同期…」「Git コミット…」と「GitGlide ▸」サブメニューが表示されます。リポジトリの外では「Git クローン…」「Git ここにリポジトリを作成…」が表示されます。表示する項目やトップレベルに出す項目は「設定 > コンテキストメニュー」で変更できます。"),
-        Topic(title: "状態アイコン (オーバーレイ)", symbol: "checkmark.circle.fill", text: "緑のチェック: 変更なし / 赤の !: 変更あり / 青の +: 追加 / 橙の稲妻: 競合 / 灰の ?: 未追跡 / 濃灰の −: 無視。フォルダには中のファイルの最も重要な状態が表示されます。アイコンは GitGlide が起動している間更新されます (設定で「ログイン時に起動」をオン推奨)。"),
+        Topic(title: "基本的な使い方", symbol: "cursorarrow.click.2", text: "Finder でファイルやフォルダを右クリックすると「Git 同期…」「Git コミット…」と「GitVelto ▸」サブメニューが表示されます。リポジトリの外では「Git クローン…」「Git ここにリポジトリを作成…」が表示されます。表示する項目やトップレベルに出す項目は「設定 > コンテキストメニュー」で変更できます。"),
+        Topic(title: "状態アイコン (オーバーレイ)", symbol: "checkmark.circle.fill", text: "緑のチェック: 変更なし / 赤の !: 変更あり / 青の +: 追加 / 橙の稲妻: 競合 / 灰の ?: 未追跡 / 濃灰の −: 無視。フォルダには中のファイルの最も重要な状態が表示されます。アイコンは GitVelto が起動している間更新されます (設定で「ログイン時に起動」をオン推奨)。"),
         Topic(title: "コミット", symbol: "checkmark.circle", text: "コミットしたいファイルにチェックを入れ、メッセージを入力して ⌘↩ でコミットします。ダブルクリックで差分、右クリックで元に戻す・無視などができます。「直前のコミットをやり直す」で amend、「Signed-off-by」で署名行、「作成者を指定」で別の作成者としてコミットできます。"),
         Topic(title: "ログ", symbol: "clock.arrow.circlepath", text: "コミットグラフ付きの履歴を表示します。⌘クリック/⇧クリックで複数選択し、2 つのコミットを比較したりパッチを作成できます。コミットを右クリックすると、ブランチ/タグの作成、リセット、リバート、チェリーピック、リベース、二分探索などが行えます。一番上の「作業ツリーの変更」で未コミットの変更を確認できます。"),
         Topic(title: "同期 (プル/プッシュ)", symbol: "arrow.triangle.2.circlepath", text: "「Git 同期…」ではプル・フェッチ・プッシュ・フェッチ＆リベースを 1 つの画面で行え、受信予定/送信予定のコミットも確認できます。認証が必要な場合はダイアログが表示されます (HTTPS は macOS のキーチェーンを利用)。"),

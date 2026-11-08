@@ -65,7 +65,7 @@ struct RefBrowserView: View {
 
     private func showLog(_ r: RefDetail) {
         let repo = repo
-        WindowManager.shared.show("GitGlide - ログ - \(r.name)", size: NSSize(width: 1080, height: 760)) { _ in
+        WindowManager.shared.show("GitVelto - ログ - \(r.name)", size: NSSize(width: 1080, height: 760)) { _ in
             LogView(repo: repo, paths: [], startRef: r.name)
         }
     }
@@ -93,16 +93,16 @@ struct RefBrowserView: View {
             }.disabled(r.isHead)
             Button("現在のブランチをこの参照にリベース") {
                 let repo = repo
-                WindowManager.shared.show("GitGlide - リベース", size: NSSize(width: 760, height: 560)) { _ in RebaseView(repo: repo, initialUpstream: r.name) }
+                WindowManager.shared.show("GitVelto - リベース", size: NSSize(width: 760, height: 560)) { _ in RebaseView(repo: repo, initialUpstream: r.name) }
             }.disabled(r.isHead)
             Button("ここからブランチを作成…") {
                 let repo = repo
-                WindowManager.shared.show("GitGlide - ブランチを作成", size: NSSize(width: 520, height: 340)) { _ in CreateRefView(repo: repo, kind: .branch, base: r.name) }
+                WindowManager.shared.show("GitVelto - ブランチを作成", size: NSSize(width: 520, height: 340)) { _ in CreateRefView(repo: repo, kind: .branch, base: r.name) }
             }
             Button("HEAD と比較") {
                 let files = repo.changedFiles(from: r.name, to: "HEAD")
                 let repo = repo
-                WindowManager.shared.show("GitGlide - \(r.name) ↔ HEAD", size: NSSize(width: 640, height: 480)) { _ in
+                WindowManager.shared.show("GitVelto - \(r.name) ↔ HEAD", size: NSSize(width: 640, height: 480)) { _ in
                     ChangedFilesView(repo: repo, files: files, from: r.name, to: "HEAD")
                 }
             }
@@ -218,7 +218,7 @@ struct ReflogView: View {
         let parent = repo.git(["rev-parse", "\(e.hash)^"]).out.trimmingCharacters(in: .whitespacesAndNewlines)
         let files = parent.isEmpty ? [] : repo.changedFiles(from: parent, to: e.hash)
         let repo = repo
-        WindowManager.shared.show("GitGlide - \(e.short)", size: NSSize(width: 640, height: 480)) { _ in
+        WindowManager.shared.show("GitVelto - \(e.short)", size: NSSize(width: 640, height: 480)) { _ in
             ChangedFilesView(repo: repo, files: files, from: parent, to: e.hash)
         }
     }
@@ -230,14 +230,14 @@ struct ReflogView: View {
         Button("ハッシュをコピー") { copyToPasteboard(e.hash) }
         Divider()
         Button("ここからブランチを作成…") {
-            WindowManager.shared.show("GitGlide - ブランチを作成", size: NSSize(width: 520, height: 340)) { _ in CreateRefView(repo: repo, kind: .branch, base: e.hash) }
+            WindowManager.shared.show("GitVelto - ブランチを作成", size: NSSize(width: 520, height: 340)) { _ in CreateRefView(repo: repo, kind: .branch, base: e.hash) }
         }
         Button("このコミットに切り替え (HEAD 切り離し)") {
             WindowManager.shared.runProgress("チェックアウト", dir: repo.root, steps: [.git(["switch", "--detach", e.hash])])
         }
         Button("このコミットまでリセット…") {
             let c = commit(e)
-            WindowManager.shared.show("GitGlide - リセット", size: NSSize(width: 480, height: 280)) { _ in ResetView(repo: repo, commit: c) {} }
+            WindowManager.shared.show("GitVelto - リセット", size: NSSize(width: 480, height: 280)) { _ in ResetView(repo: repo, commit: c) {} }
         }
     }
 }
@@ -339,7 +339,7 @@ struct RepoBrowserView: View {
             }
             Button("Blame") {
                 let rev = revision
-                WindowManager.shared.show("GitGlide - Blame - \(e.name)", size: NSSize(width: 1000, height: 720)) { _ in
+                WindowManager.shared.show("GitVelto - Blame - \(e.name)", size: NSSize(width: 1000, height: 720)) { _ in
                     BlameView(repo: repo, path: repo.absolute(e.path), revision: rev)
                 }
             }
@@ -349,7 +349,7 @@ struct RepoBrowserView: View {
         }
         Button("ログを表示") {
             let rev = revision
-            WindowManager.shared.show("GitGlide - ログ - \(e.name)", size: NSSize(width: 1080, height: 760)) { _ in
+            WindowManager.shared.show("GitVelto - ログ - \(e.name)", size: NSSize(width: 1080, height: 760)) { _ in
                 LogView(repo: repo, paths: [repo.absolute(e.path)], startRef: rev)
             }
         }

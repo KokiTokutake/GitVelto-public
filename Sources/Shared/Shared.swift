@@ -2,25 +2,25 @@ import Foundation
 
 /// Constants shared between the main app and the Finder Sync extension.
 enum KG {
-    static let appBundleID = "com.ktoku.GitGlide"
-    static let extensionBundleID = "com.ktoku.GitGlide.FinderSync"
-    static let urlScheme = "gitglide"
+    static let appBundleID = "com.ktoku.GitVelto"
+    static let extensionBundleID = "com.ktoku.GitVelto.FinderSync"
+    static let urlScheme = "gitvelto"
 
     /// Distributed notification names used for app <-> extension IPC.
     /// The extension is sandboxed, so it only sends the `object` string (no userInfo).
     enum Note {
         /// ext -> app: object = directory path that Finder started showing
-        static let observe = "com.ktoku.GitGlide.observe"
+        static let observe = "com.ktoku.GitVelto.observe"
         /// ext -> app: object = directory path that Finder stopped showing
-        static let unobserve = "com.ktoku.GitGlide.unobserve"
+        static let unobserve = "com.ktoku.GitVelto.unobserve"
         /// app -> ext: object = JSON encoded `BadgePayload`
-        static let badges = "com.ktoku.GitGlide.badges"
+        static let badges = "com.ktoku.GitVelto.badges"
         /// app -> ext: app (re)started, extension should re-send observed directories
-        static let appReady = "com.ktoku.GitGlide.appReady"
+        static let appReady = "com.ktoku.GitVelto.appReady"
         /// app -> ext: object = JSON encoded `MenuConfig`
-        static let menuConfig = "com.ktoku.GitGlide.menuConfig"
+        static let menuConfig = "com.ktoku.GitVelto.menuConfig"
         /// ext -> app: please send the menu configuration
-        static let requestConfig = "com.ktoku.GitGlide.requestConfig"
+        static let requestConfig = "com.ktoku.GitVelto.requestConfig"
     }
 }
 
@@ -129,7 +129,7 @@ enum GitAction: String, CaseIterable, Codable {
         case .terminal: return "ターミナルで開く"
         case .settings: return "設定…"
         case .help: return "ヘルプ"
-        case .about: return "GitGlide について"
+        case .about: return "GitVelto について"
         }
     }
 

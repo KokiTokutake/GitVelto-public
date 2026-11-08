@@ -1,4 +1,4 @@
-// Functional tests: run GitGlide's git command builders against real sample repositories.
+// Functional tests: run GitVelto's git command builders against real sample repositories.
 //   scripts/test.sh
 import Foundation
 setvbuf(stdout, nil, _IONBF, 0)
@@ -94,6 +94,17 @@ let r3 = GitOps.runSync(GitOps.commitSteps(repo: work, entries: [], options: .in
 check(r3.ok && sh("git log -1 --format=%s", work.root) == "メモを追加 (修正)", "amend message only", r3.output)
 let r4 = GitOps.runSync(GitOps.commitSteps(repo: work, entries: [], options: .init(message: "空コミット")), in: work.root)
 check(r4.ok && sh("git log -1 --format=%s", work.root) == "空コミット", "allow-empty commit", r4.output)
+
+print("■ commit staged rename + staged deletion (git mv / git rm)")
+sh("git mv src/main.swift src/hello.swift && git rm -q src/login.swift && printf 'z' >> README.md", work.root)
+let staged = work.status().filter { ["src/hello.swift", "src/login.swift"].contains($0.path) }
+check(staged.count == 2, "prepared staged rename + deletion", "\(work.status().map { "\($0.x)\($0.y) \($0.path)" })")
+let r4b = GitOps.runSync(GitOps.commitSteps(repo: work, entries: staged, options: .init(message: "名前変更と削除")), in: work.root)
+check(r4b.ok, "commit staged rename/deletion", r4b.output)
+check(sh("git show --name-status --format= -M HEAD", work.root).contains("R100\tsrc/main.swift\tsrc/hello.swift"), "rename committed")
+check(sh("git show --name-status --format= HEAD", work.root).contains("D\tsrc/login.swift"), "deletion committed")
+check(work.status().contains { $0.path == "README.md" }, "unchecked README change left uncommitted")
+sh("git checkout -q -- README.md && git mv src/hello.swift src/main.swift && git checkout -q HEAD~1 -- src/login.swift && git commit -qm restore", work.root)
 
 print("■ revert")
 sh("printf 'x' >> src/math.swift && printf 'y' > added.txt && git add added.txt && git mv src/login.swift src/auth.swift", work.root)

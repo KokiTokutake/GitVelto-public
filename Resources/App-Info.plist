@@ -5,17 +5,17 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>ja</string>
 	<key>CFBundleDisplayName</key>
-	<string>GitGlide</string>
+	<string>GitVelto</string>
 	<key>CFBundleExecutable</key>
-	<string>GitGlide</string>
+	<string>GitVelto</string>
 	<key>CFBundleIconFile</key>
 	<string>AppIcon</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.ktoku.GitGlide</string>
+	<string>com.ktoku.GitVelto</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>GitGlide</string>
+	<string>GitVelto</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -26,10 +26,10 @@
 	<array>
 		<dict>
 			<key>CFBundleURLName</key>
-			<string>com.ktoku.GitGlide</string>
+			<string>com.ktoku.GitVelto</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>gitglide</string>
+				<string>gitvelto</string>
 			</array>
 		</dict>
 	</array>
@@ -44,6 +44,6 @@
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 	<key>NSHumanReadableCopyright</key>
-	<string>GitGlide</string>
+	<string>GitVelto</string>
 </dict>
 </plist>

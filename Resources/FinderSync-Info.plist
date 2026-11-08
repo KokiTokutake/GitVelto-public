@@ -5,15 +5,15 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>ja</string>
 	<key>CFBundleDisplayName</key>
-	<string>GitGlide</string>
+	<string>GitVelto</string>
 	<key>CFBundleExecutable</key>
-	<string>GitGlideFinderSync</string>
+	<string>GitVeltoFinderSync</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.ktoku.GitGlide.FinderSync</string>
+	<string>com.ktoku.GitVelto.FinderSync</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>GitGlideFinderSync</string>
+	<string>GitVeltoFinderSync</string>
 	<key>CFBundlePackageType</key>
 	<string>XPC!</string>
 	<key>CFBundleShortVersionString</key>

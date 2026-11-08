@@ -2,7 +2,7 @@ import Cocoa
 import FinderSync
 import os
 
-private let log = Logger(subsystem: "com.ktoku.GitGlide", category: "FinderSync")
+private let log = Logger(subsystem: "com.ktoku.GitVelto", category: "FinderSync")
 
 /// Finder Sync extension: provides the right-click "Git" menus and status overlay badges.
 /// Heavy work (running git) happens in the main app; this process only renders what the app sends.
@@ -34,7 +34,7 @@ final class FinderSync: FIFinderSync {
         dnc.addObserver(self, selector: #selector(onMenuConfig(_:)),
                         name: Notification.Name(KG.Note.menuConfig), object: nil,
                         suspensionBehavior: .deliverImmediately)
-        log.notice("GitGlide Finder extension started")
+        log.notice("GitVelto Finder extension started")
         post(KG.Note.requestConfig, "")
 
         let wnc = NSWorkspace.shared.notificationCenter
@@ -151,10 +151,10 @@ final class FinderSync: FIFinderSync {
 
     // MARK: - Toolbar
 
-    override var toolbarItemName: String { "GitGlide" }
-    override var toolbarItemToolTip: String { "GitGlide: Git 操作" }
+    override var toolbarItemName: String { "GitVelto" }
+    override var toolbarItemToolTip: String { "GitVelto: Git 操作" }
     override var toolbarItemImage: NSImage {
-        NSImage(systemSymbolName: "arrow.triangle.branch", accessibilityDescription: "GitGlide") ?? NSImage()
+        NSImage(systemSymbolName: "arrow.triangle.branch", accessibilityDescription: "GitVelto") ?? NSImage()
     }
 
     // MARK: - Context menu
@@ -210,7 +210,7 @@ final class FinderSync: FIFinderSync {
         let entries = MenuPlanner.plan(ctx, config: cfg)
 
         let menu = NSMenu(title: "")
-        let sub = NSMenu(title: "GitGlide")
+        let sub = NSMenu(title: "GitVelto")
         for e in entries {
             let mi = item(e.action, title: e.title)
             if e.topLevel {
@@ -221,7 +221,7 @@ final class FinderSync: FIFinderSync {
             }
         }
         if !sub.items.isEmpty {
-            let top = NSMenuItem(title: "GitGlide", action: nil, keyEquivalent: "")
+            let top = NSMenuItem(title: "GitVelto", action: nil, keyEquivalent: "")
             top.image = BadgeImages.menuIcon()
             top.submenu = sub
             menu.addItem(top)
@@ -258,9 +258,9 @@ final class FinderSync: FIFinderSync {
 
 /// Renders overlay badge bitmaps (no asset catalog needed).
 enum BadgeImages {
-    /// Small app-like icon for the "GitGlide" submenu.
+    /// Small app-like icon for the "GitVelto" submenu.
     static func menuIcon() -> NSImage? {
-        NSImage(systemSymbolName: "arrow.triangle.branch", accessibilityDescription: "GitGlide")
+        NSImage(systemSymbolName: "arrow.triangle.branch", accessibilityDescription: "GitVelto")
     }
 
     static func registerAll() {

@@ -1,4 +1,4 @@
-// Renders the GitGlide app icon: a git branch that glides up-right on a blue gradient.
+// Renders the GitVelto app icon: a git branch that glides up-right on a blue gradient.
 // Usage: swiftc scripts/make_icon.swift -o build/make_icon && build/make_icon Resources/AppIcon.icns
 // Writes a PNG-based .icns directly (no sips/iconutil needed).
 import AppKit

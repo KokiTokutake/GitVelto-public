@@ -435,7 +435,7 @@ struct LogView: View {
             Button("選択した 2 つのコミットを比較") {
                 let ordered = sel.sorted { $0.date < $1.date }
                 let files = repo.changedFiles(from: ordered[0].hash, to: ordered[1].hash)
-                WindowManager.shared.show("GitGlide - \(ordered[0].short) ↔ \(ordered[1].short)", size: NSSize(width: 640, height: 480)) { _ in
+                WindowManager.shared.show("GitVelto - \(ordered[0].short) ↔ \(ordered[1].short)", size: NSSize(width: 640, height: 480)) { _ in
                     ChangedFilesView(repo: repo, files: files, from: ordered[0].hash, to: ordered[1].hash)
                 }
             }
@@ -443,7 +443,7 @@ struct LogView: View {
         if sel.count > 1 {
             Button("選択した \(sel.count) コミットのパッチを作成…") {
                 let hashes = sel.map(\.hash)
-                WindowManager.shared.show("GitGlide - パッチを作成", size: NSSize(width: 520, height: 360)) { _ in CreatePatchView(repo: repo, commits: hashes) }
+                WindowManager.shared.show("GitVelto - パッチを作成", size: NSSize(width: 520, height: 360)) { _ in CreatePatchView(repo: repo, commits: hashes) }
             }
             Button("選択した \(sel.count) コミットをチェリーピック") {
                 let hashes = sel.sorted { $0.date < $1.date }.map(\.hash)
@@ -457,12 +457,12 @@ struct LogView: View {
         Button("メッセージをコピー") { copyToPasteboard(c.subject + (c.body.isEmpty ? "" : "\n\n" + c.body)) }
         Divider()
         Button("このコミットからブランチを作成…") {
-            WindowManager.shared.show("GitGlide - ブランチを作成", size: NSSize(width: 520, height: 340)) { _ in
+            WindowManager.shared.show("GitVelto - ブランチを作成", size: NSSize(width: 520, height: 340)) { _ in
                 CreateRefView(repo: repo, kind: .branch, base: c.hash)
             }
         }
         Button("このコミットにタグを作成…") {
-            WindowManager.shared.show("GitGlide - タグを作成", size: NSSize(width: 520, height: 400)) { _ in
+            WindowManager.shared.show("GitVelto - タグを作成", size: NSSize(width: 520, height: 400)) { _ in
                 CreateRefView(repo: repo, kind: .tag, base: c.hash)
             }
         }
@@ -472,7 +472,7 @@ struct LogView: View {
             }
         }
         Button("このコミットまでリセット…") {
-            WindowManager.shared.show("GitGlide - リセット", size: NSSize(width: 480, height: 280)) { _ in
+            WindowManager.shared.show("GitVelto - リセット", size: NSSize(width: 480, height: 280)) { _ in
                 ResetView(repo: repo, commit: c) { model.reload() }
             }
         }
@@ -490,23 +490,23 @@ struct LogView: View {
             }
         }
         Button("現在のブランチをこのコミットへリベース…") {
-            WindowManager.shared.show("GitGlide - リベース", size: NSSize(width: 760, height: 560)) { _ in RebaseView(repo: repo, initialUpstream: c.hash) }
+            WindowManager.shared.show("GitVelto - リベース", size: NSSize(width: 760, height: 560)) { _ in RebaseView(repo: repo, initialUpstream: c.hash) }
         }
         Divider()
         Button("HEAD と比較 (変更ファイル一覧)") {
             let files = repo.changedFiles(from: c.hash, to: "HEAD")
-            WindowManager.shared.show("GitGlide - \(c.short) ↔ HEAD", size: NSSize(width: 640, height: 480)) { _ in
+            WindowManager.shared.show("GitVelto - \(c.short) ↔ HEAD", size: NSSize(width: 640, height: 480)) { _ in
                 ChangedFilesView(repo: repo, files: files, from: c.hash, to: "HEAD")
             }
         }
         Button("このリビジョンをリポジトリブラウザで開く") {
-            WindowManager.shared.show("GitGlide - リポジトリブラウザ - \(c.short)", size: NSSize(width: 760, height: 560)) { _ in RepoBrowserView(repo: repo, revision: c.hash) }
+            WindowManager.shared.show("GitVelto - リポジトリブラウザ - \(c.short)", size: NSSize(width: 760, height: 560)) { _ in RepoBrowserView(repo: repo, revision: c.hash) }
         }
         Button("このリビジョンをエクスポート…") {
-            WindowManager.shared.show("GitGlide - エクスポート", size: NSSize(width: 520, height: 300)) { _ in ExportView(repo: repo, revision: c.hash) }
+            WindowManager.shared.show("GitVelto - エクスポート", size: NSSize(width: 520, height: 300)) { _ in ExportView(repo: repo, revision: c.hash) }
         }
         Button("パッチを作成…") {
-            WindowManager.shared.show("GitGlide - パッチを作成", size: NSSize(width: 520, height: 360)) { _ in CreatePatchView(repo: repo, commits: [c.hash]) }
+            WindowManager.shared.show("GitVelto - パッチを作成", size: NSSize(width: 520, height: 360)) { _ in CreatePatchView(repo: repo, commits: [c.hash]) }
         }
         Divider()
         if model.bisecting {
@@ -514,10 +514,10 @@ struct LogView: View {
             Button("二分探索: このコミットは悪い") { bisect("bad", c) }
         } else {
             Button("二分探索を開始 (このコミットを良いとする)") {
-                WindowManager.shared.show("GitGlide - 二分探索", size: NSSize(width: 520, height: 300)) { _ in BisectStartView(repo: repo, good: c.hash, bad: "HEAD") }
+                WindowManager.shared.show("GitVelto - 二分探索", size: NSSize(width: 520, height: 300)) { _ in BisectStartView(repo: repo, good: c.hash, bad: "HEAD") }
             }
             Button("二分探索を開始 (このコミットを悪いとする)") {
-                WindowManager.shared.show("GitGlide - 二分探索", size: NSSize(width: 520, height: 300)) { _ in BisectStartView(repo: repo, good: "", bad: c.hash) }
+                WindowManager.shared.show("GitVelto - 二分探索", size: NSSize(width: 520, height: 300)) { _ in BisectStartView(repo: repo, good: "", bad: c.hash) }
             }
         }
     }

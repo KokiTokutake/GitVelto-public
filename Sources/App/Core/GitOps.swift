@@ -13,10 +13,20 @@ enum GitOps {
 
     /// TortoiseGit-style commit: only the checked entries are committed (staged state of others is kept).
     static func commitSteps(repo: Repo, entries: [StatusEntry], options o: CommitOptions) -> [ProgressStep] {
+        // Paths for the commit pathspec: new and old paths (so renames/deletions are committed).
         var rels: [String] = []
+        // Paths to `git add`: only those that exist in the work tree or still exist in the index.
+        // Staged deletions and the old side of staged renames are no longer known to the index,
+        // and `git add -- <path>` would fail with "pathspec did not match".
+        var addRels: [String] = []
+        let fm = FileManager.default
         for e in entries {
             rels.append(e.path)
             if let orig = e.origPath { rels.append(orig) }
+            let inWorktree = fm.fileExists(atPath: repo.absolute(e.path))
+            let inIndex = e.y != " " && e.y != "?"   // has unstaged changes => present in index
+            if inWorktree || inIndex { addRels.append(e.path) }
+            if let orig = e.origPath, fm.fileExists(atPath: repo.absolute(orig)) { addRels.append(orig) }
         }
         let merging = repo.operationState() == .merging
         var steps: [ProgressStep] = []
@@ -24,8 +34,8 @@ enum GitOps {
         let tempError = ProgressStep.custom("一時ファイルを作成しています") {
             throw GitError(message: "一時ファイルを作成できません: \(KGTemp.dir.path)")
         }
-        if !rels.isEmpty {
-            guard let f = repo.pathspecFile(rels) else { return [tempError] }
+        if !addRels.isEmpty {
+            guard let f = repo.pathspecFile(addRels) else { return [tempError] }
             steps.append(.git(["--literal-pathspecs", "add", "-A", "--pathspec-from-file=\(f)", "--pathspec-file-nul"]))
         }
         guard let msgFile = repo.messageFile(o.message) else { return [tempError] }

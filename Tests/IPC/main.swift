@@ -1,4 +1,4 @@
-// Simulates the Finder extension: asks the running GitGlide app for badges of a directory.
+// Simulates the Finder extension: asks the running GitVelto app for badges of a directory.
 //   ipc-test <dir>
 import Foundation
 setvbuf(stdout, nil, _IONBF, 0)
