@@ -445,47 +445,19 @@ struct LogView: View {
                 let hashes = sel.map(\.hash)
                 WindowManager.shared.show("GitVelto - パッチを作成", size: NSSize(width: 520, height: 360)) { _ in CreatePatchView(repo: repo, commits: hashes) }
             }
-            Button("選択した \(sel.count) コミットをチェリーピック") {
-                if WindowManager.confirm("\(sel.count) 個のコミットを現在のブランチにチェリーピックしますか?") {
-                    WindowManager.shared.runProgress("チェリーピック", dir: repo.root, steps: [.git(GitOps.cherryPick(sel))]) { _ in model.reload() }
-                }
-            }
+            Button("選択した \(sel.count) コミットをチェリーピック") { cherryPick(sel) }
             Divider()
         }
         Button("ハッシュをコピー") { copyToPasteboard(sel.map(\.hash).joined(separator: "\n")) }
         Button("メッセージをコピー") { copyToPasteboard(c.subject + (c.body.isEmpty ? "" : "\n\n" + c.body)) }
         Divider()
-        Button("このコミットからブランチを作成…") {
-            WindowManager.shared.show("GitVelto - ブランチを作成", size: NSSize(width: 520, height: 340)) { _ in
-                CreateRefView(repo: repo, kind: .branch, base: c.hash)
-            }
-        }
-        Button("このコミットにタグを作成…") {
-            WindowManager.shared.show("GitVelto - タグを作成", size: NSSize(width: 520, height: 400)) { _ in
-                CreateRefView(repo: repo, kind: .tag, base: c.hash)
-            }
-        }
-        Button("このコミットに切り替え (HEAD 切り離し)") {
-            if WindowManager.confirm("\(c.short) をチェックアウトしますか?", info: "HEAD が切り離された状態になります。") {
-                WindowManager.shared.runProgress("チェックアウト", dir: repo.root, steps: [.git(GitOps.detach(c.hash))]) { _ in model.reload() }
-            }
-        }
-        Button("このコミットまでリセット…") {
-            WindowManager.shared.show("GitVelto - リセット", size: NSSize(width: 480, height: 280)) { _ in
-                ResetView(repo: repo, commit: c) { model.reload() }
-            }
-        }
+        Button("このコミットからブランチを作成…") { createRef(.branch, c) }
+        Button("このコミットにタグを作成…") { createRef(.tag, c) }
+        Button("このコミットに切り替え (HEAD 切り離し)") { detach(c) }
+        Button("このコミットまでリセット…") { reset(c) }
         Divider()
-        Button("このコミットを打ち消す (revert)") {
-            if WindowManager.confirm("\(c.short) を打ち消すコミットを作成しますか?", info: c.subject) {
-                WindowManager.shared.runProgress("リバート", dir: repo.root, steps: [.git(GitOps.revertCommit(c))]) { _ in model.reload() }
-            }
-        }
-        Button("チェリーピック") {
-            if WindowManager.confirm("\(c.short) を現在のブランチにチェリーピックしますか?", info: c.subject) {
-                WindowManager.shared.runProgress("チェリーピック", dir: repo.root, steps: [.git(GitOps.cherryPick([c]))]) { _ in model.reload() }
-            }
-        }
+        Button("このコミットを打ち消す (revert)") { revert(c) }
+        Button("チェリーピック") { cherryPick([c]) }
         Button("現在のブランチをこのコミットへリベース…") {
             WindowManager.shared.show("GitVelto - リベース", size: NSSize(width: 760, height: 560)) { _ in RebaseView(repo: repo, initialUpstream: c.hash) }
         }
@@ -519,6 +491,57 @@ struct LogView: View {
         }
     }
 
+    // MARK: commit actions (shared by the context menu and the action bar)
+
+    private func createRef(_ kind: CreateRefView.Kind, _ c: Commit) {
+        let repo = model.repo
+        WindowManager.shared.show(kind == .branch ? "GitVelto - ブランチを作成" : "GitVelto - タグを作成",
+                                  size: NSSize(width: 520, height: kind == .branch ? 340 : 400)) { _ in
+            CreateRefView(repo: repo, kind: kind, base: c.hash)
+        }
+    }
+
+    private func detach(_ c: Commit) {
+        if WindowManager.confirm("\(c.short) をチェックアウトしますか?", info: "HEAD が切り離された状態になります。") {
+            WindowManager.shared.runProgress("チェックアウト", dir: model.repo.root, steps: [.git(GitOps.detach(c.hash))]) { _ in model.reload() }
+        }
+    }
+
+    private func reset(_ c: Commit) {
+        let repo = model.repo
+        WindowManager.shared.show("GitVelto - リセット", size: NSSize(width: 480, height: 280)) { _ in
+            ResetView(repo: repo, commit: c) { model.reload() }
+        }
+    }
+
+    private func revert(_ c: Commit) {
+        if WindowManager.confirm("\(c.short) を打ち消すコミットを作成しますか?", info: c.subject) {
+            WindowManager.shared.runProgress("リバート", dir: model.repo.root, steps: [.git(GitOps.revertCommit(c))]) { _ in model.reload() }
+        }
+    }
+
+    private func cherryPick(_ sel: [Commit]) {
+        let msg = sel.count == 1 ? "\(sel[0].short) を現在のブランチにチェリーピックしますか?" : "\(sel.count) 個のコミットを現在のブランチにチェリーピックしますか?"
+        if WindowManager.confirm(msg, info: sel.count == 1 ? sel[0].subject : "") {
+            WindowManager.shared.runProgress("チェリーピック", dir: model.repo.root, steps: [.git(GitOps.cherryPick(sel))]) { _ in model.reload() }
+        }
+    }
+
+    /// Buttons for the selected commit(s), shown above the details (same actions as the context menu).
+    private func actionBar(_ c: Commit) -> some View {
+        let sel = model.multi.contains(c.hash) ? model.selectedCommits : [c]
+        return HStack(spacing: 6) {
+            Button("ブランチ…") { createRef(.branch, c) }.help("このコミットからブランチを作成")
+            Button("タグ…") { createRef(.tag, c) }.help("このコミットにタグを作成")
+            Button("切り替え") { detach(c) }.help("このコミットに切り替え (HEAD 切り離し)")
+            Button("リセット…") { reset(c) }.help("現在のブランチをこのコミットまでリセット")
+            Button("リバート") { revert(c) }.help("このコミットを打ち消すコミットを作成")
+            Button(sel.count > 1 ? "チェリーピック (\(sel.count))" : "チェリーピック") { cherryPick(sel) }
+                .help("現在のブランチにチェリーピック")
+        }
+        .controlSize(.small)
+    }
+
     private func bisect(_ verb: String, _ c: Commit) {
         WindowManager.shared.runProgress("二分探索", dir: model.repo.root, steps: [.git(["bisect", verb, c.hash])]) { _ in
             DispatchQueue.main.async { model.reload() }
@@ -541,6 +564,8 @@ struct LogView: View {
                 .padding(10)
             } else if let c = model.selectedCommit {
                 VStack(alignment: .leading, spacing: 6) {
+                    actionBar(c)
+                    Divider()
                     HStack {
                         Text("コミット:").foregroundStyle(.secondary)
                         Text(c.hash).font(.system(size: 12, design: .monospaced))

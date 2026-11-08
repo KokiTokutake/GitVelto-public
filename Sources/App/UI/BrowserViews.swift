@@ -47,8 +47,13 @@ struct RefBrowserView: View {
             .contextMenu(forSelectionType: String.self, menu: { ids in menu(ids) }, primaryAction: { ids in
                 if let r = refs.first(where: { ids.contains($0.id) }) { showLog(r) }
             })
-            HStack {
-                Text("\(shown.count) 件  (ダブルクリックでログ表示 / 右クリックで操作)").font(.caption).foregroundStyle(.secondary)
+            HStack(spacing: 6) {
+                let sel = refs.filter { selection.contains($0.id) }
+                Button("ログ") { if let r = sel.first { showLog(r) } }.disabled(sel.count != 1)
+                Button("切り替え") { if let r = sel.first { switchTo(r) } }.disabled(sel.count != 1 || sel.first?.isHead == true)
+                Button("名前を変更…") { if let r = sel.first { rename(r) } }.disabled(sel.count != 1 || sel.first?.kind != .local)
+                Button("削除…") { delete(sel) }.disabled(sel.isEmpty || sel.contains { $0.isHead })
+                Text("\(shown.count) 件  (ダブルクリックでログ / 右クリックでその他の操作)").font(.caption).foregroundStyle(.secondary)
                 Spacer()
                 Button("ブランチを作成…") { WindowManager.shared.perform(.branch, paths: [repo.root]) }
                 Button("閉じる") { handle.close() }.keyboardShortcut(.cancelAction)
@@ -74,18 +79,53 @@ struct RefBrowserView: View {
         WindowManager.shared.runProgress(title, dir: repo.root, steps: steps) { _ in DispatchQueue.main.async { load() } }
     }
 
+    private func switchTo(_ r: RefDetail) {
+        if r.kind == .local { run("切り替え", [.git(["switch", r.name])]) }
+        else if r.kind == .remote {
+            let short = r.name.split(separator: "/").dropFirst().joined(separator: "/")
+            run("切り替え", [.git(["switch", "-c", short, "--track", r.name])])
+        } else { run("切り替え", [.git(GitOps.detach(r.name))]) }
+    }
+
+    private func rename(_ r: RefDetail) {
+        if let n = WindowManager.prompt("ブランチ名を変更", info: r.name, defaultValue: r.name), !n.isEmpty, n != r.name {
+            run("名前を変更", [.git(GitOps.renameBranch(r.name, to: n))])
+        }
+    }
+
+    /// Deletes local branches, remote branches and tags (tags also from the first remote when chosen).
+    private func delete(_ sel: [RefDetail]) {
+        let locals = sel.filter { $0.kind == .local && !$0.isHead }
+        let remotes = sel.filter { $0.kind == .remote }
+        let tags = sel.filter { $0.kind == .tag }
+        guard !(locals.isEmpty && remotes.isEmpty && tags.isEmpty) else { return }
+        var info: [String] = []
+        if !locals.isEmpty { info.append("ローカルブランチ: " + locals.map(\.name).joined(separator: ", ")) }
+        if !remotes.isEmpty { info.append("リモートブランチ (サーバー上から削除): " + remotes.map(\.name).joined(separator: ", ")) }
+        if !tags.isEmpty { info.append("タグ: " + tags.map(\.name).joined(separator: ", ")) }
+        guard WindowManager.confirm("\(sel.count) 件の参照を削除しますか?", info: info.joined(separator: "\n"), ok: "削除", destructive: true) else { return }
+        if !locals.isEmpty {
+            let r = repo.git(GitOps.deleteBranches(locals.map(\.name), force: false))
+            if !r.ok, WindowManager.confirm("マージされていないブランチがあります", info: r.message + "\n\n強制的に削除しますか?", ok: "強制削除", destructive: true) {
+                repo.git(GitOps.deleteBranches(locals.map(\.name), force: true))
+            }
+        }
+        var steps = GitOps.deleteRemoteBranches(remotes.map(\.name))
+        if !tags.isEmpty {
+            steps.append(.git(GitOps.deleteTags(tags.map(\.name))))
+            if let remote = firstRemote, WindowManager.confirm("タグをリモート (\(remote)) からも削除しますか?", ok: "リモートからも削除") {
+                steps.append(.git(GitOps.deleteRemoteTags(tags.map(\.name), remote: remote)))
+            }
+        }
+        if steps.isEmpty { load() } else { run("参照を削除", steps) }
+    }
+
     @ViewBuilder
     private func menu(_ ids: Set<String>) -> some View {
         let sel = refs.filter { ids.contains($0.id) }
         if sel.count == 1, let r = sel.first {
             Button("ログを表示") { showLog(r) }
-            Button("切り替え/チェックアウト") {
-                if r.kind == .local { run("切り替え", [.git(["switch", r.name])]) }
-                else if r.kind == .remote {
-                    let short = r.name.split(separator: "/").dropFirst().joined(separator: "/")
-                    run("切り替え", [.git(["switch", "-c", short, "--track", r.name])])
-                } else { run("切り替え", [.git(["switch", "--detach", r.name])]) }
-            }.disabled(r.isHead)
+            Button("切り替え/チェックアウト") { switchTo(r) }.disabled(r.isHead)
             Button("現在のブランチにマージ") {
                 if WindowManager.confirm("\(r.name) を現在のブランチにマージしますか?", ok: "マージ") {
                     run("マージ", [.git(["merge", "--no-edit", r.name])])
@@ -108,11 +148,7 @@ struct RefBrowserView: View {
             }
             Divider()
             if r.kind == .local {
-                Button("名前を変更…") {
-                    if let n = WindowManager.prompt("ブランチ名を変更", info: r.name, defaultValue: r.name), !n.isEmpty, n != r.name {
-                        run("名前を変更", [.git(GitOps.renameBranch(r.name, to: n))])
-                    }
-                }
+                Button("名前を変更…") { rename(r) }
                 Button("上流ブランチを設定…") {
                     if let n = WindowManager.prompt("上流ブランチ (例: origin/\(r.name))", defaultValue: r.upstream.isEmpty ? "origin/\(r.name)" : r.upstream), !n.isEmpty {
                         run("上流ブランチを設定", [.git(GitOps.setUpstream(n, for: r.name))])
