@@ -55,7 +55,7 @@ public sealed class DiffView : GVView
         header.Children.Add(left);
 
         list.FontFamily = Ui.Mono;
-        list.FontSize = 12;
+        list.FontSize = 13;
         list.SelectionMode = SelectionMode.Extended;
         list.BorderThickness = new Thickness(0);
         list.HorizontalContentAlignment = HorizontalAlignment.Stretch;

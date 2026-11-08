@@ -384,7 +384,7 @@ public sealed class BlameView : GVView
             ItemTemplate = new DataTemplate { VisualTree = row },
             ItemsPanel = new ItemsPanelTemplate(new FrameworkElementFactory(typeof(VirtualizingStackPanel))),
             Template = new ControlTemplate(typeof(ItemsControl)) { VisualTree = scroll },
-            FontFamily = Ui.Mono, FontSize = 12, Focusable = true,
+            FontFamily = Ui.Mono, FontSize = 13, Focusable = true,
         };
         VirtualizingPanel.SetIsVirtualizing(ic, true);
         VirtualizingPanel.SetVirtualizationMode(ic, VirtualizationMode.Recycling);

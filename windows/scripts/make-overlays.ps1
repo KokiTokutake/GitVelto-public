@@ -30,8 +30,8 @@ function Draw-Badge($size, $color, $glyph, $fontName) {
     $g.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
     $g.TextRenderingHint = [System.Drawing.Text.TextRenderingHint]::AntiAlias
     $g.Clear([System.Drawing.Color]::Transparent)
-    # badge: ~56% of the icon (at least 9px), lower-left corner
-    $d = [Math]::Max(9.0, [Math]::Round($size * 0.56))
+    # badge: ~72% of the icon (at least 11px), lower-left corner
+    $d = [Math]::Max(11.0, [Math]::Round($size * 0.72))
     $x = 0.0; $y = $size - $d
     $ring = [Math]::Max(1.0, $d * 0.09)
     $g.FillEllipse([System.Drawing.Brushes]::White, [single]$x, [single]$y, [single]$d, [single]$d)

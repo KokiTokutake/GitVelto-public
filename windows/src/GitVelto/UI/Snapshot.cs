@@ -70,7 +70,8 @@ public static class Snapshot
             ("about", () => new AboutView(), 440, 340),
             ("progress", () =>
             {
-                var r = new CommandRunner(work.Root, [ProgressStep.Git("status")]);
+                var spec = work.PathspecFile(["README.md", "src/new_feature.swift"]) ?? "";
+                var r = new CommandRunner(work.Root, [ProgressStep.Git("--literal-pathspecs", "add", "--dry-run", "-A", $"--pathspec-from-file={spec}", "--pathspec-file-nul"), ProgressStep.Git("status", "--short")]);
                 r.Start();
                 return new ProgressView("状態の確認", r, []);
             }, 680, 420),

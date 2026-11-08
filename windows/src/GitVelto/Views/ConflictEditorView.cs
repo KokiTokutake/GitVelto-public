@@ -297,7 +297,7 @@ public sealed class ConflictEditorView : GVView
 
     private static TextBox MonoText(string text) => new()
     {
-        Text = text, IsReadOnly = true, FontFamily = Ui.Mono, FontSize = 12, BorderThickness = new Thickness(0),
+        Text = text, IsReadOnly = true, FontFamily = Ui.Mono, FontSize = 13, BorderThickness = new Thickness(0),
         Background = Brushes.Transparent, Padding = new Thickness(0), TextWrapping = TextWrapping.NoWrap,
         HorizontalScrollBarVisibility = ScrollBarVisibility.Auto, VerticalScrollBarVisibility = ScrollBarVisibility.Disabled,
         MinHeight = 0,

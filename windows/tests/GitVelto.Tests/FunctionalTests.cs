@@ -85,6 +85,14 @@ public class FunctionalTests
         c.Check(work.Status().Any(e => e.Path == "README.md"), "unchecked README change left uncommitted");
         Sh("git checkout -q -- README.md && git mv src/hello.swift src/main.swift && git checkout -q HEAD~1 -- src/login.swift && git commit -qm restore", work.Root);
 
+        // ■ commit files of a folder that was deleted entirely (no "could not open directory" warning)
+        Sh("mkdir -p 画像 && printf 'a' > 画像/a.jpg && printf 'b' > 画像/b.jpg && git add 画像 && git commit -qm 'add images' && rm -rf 画像", work.Root);
+        var gone = work.Status().Where(e => e.Path.StartsWith("画像/")).ToList();
+        c.Check(gone.Count == 2 && gone.All(e => e.State == FileState.Deleted), "prepared deleted folder", string.Join(",", gone.Select(e => e.Path)));
+        var rg = GitOps.RunSync(GitOps.CommitSteps(work, gone, new("画像フォルダを削除")), work.Root);
+        c.Check(rg.Ok && !rg.Output.Contains("could not open directory"), "commit deleted folder without warning", rg.Output);
+        c.Check(!work.Status().Any(e => e.Path.StartsWith("画像/")), "deleted folder committed");
+
         // ■ revert
         Sh("printf 'x' >> src/math.swift && printf 'y' > added.txt && git add added.txt && git mv src/login.swift src/auth.swift", work.Root);
         var rv = work.Status().Where(e => e.Path is "src/math.swift" or "added.txt" or "src/auth.swift").ToList();

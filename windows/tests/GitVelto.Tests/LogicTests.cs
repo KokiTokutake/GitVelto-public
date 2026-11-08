@@ -61,6 +61,10 @@ public class LogicTests
         Assert.Contains(ex3.Options, o => o.Option == "add");
 
         Assert.Contains("捨て", CommandExplainer.Explain(["reset", "--hard", "abc"]).Options[0].Meaning);
+        // Windows paths are shown as typed (no doubled backslashes); GitVelto's temp files are shortened.
+        Assert.Equal(@"git apply C:\work\a.patch", CommandExplainer.Display(["apply", @"C:\work\a.patch"]));
+        Assert.Equal(@"git commit -F %TEMP%\GitVelto\msg-1.txt", CommandExplainer.Display(["commit", "-F", KGTemp.PathFor("msg-1.txt")]));
+        Assert.Equal("git add \"C:\\My Files\\x.txt\"", CommandExplainer.Display(["add", @"C:\My Files\x.txt"]));
         Assert.Contains(CommandExplainer.Explain(["commit", "--cleanup=strip"]).Options, o => o.Option == "--cleanup=strip");
     }
 

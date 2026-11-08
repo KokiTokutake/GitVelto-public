@@ -76,9 +76,9 @@ public sealed class SyncView : GVView
             this.runner = runner;
             box = new RichTextBox
             {
-                IsReadOnly = true, IsDocumentEnabled = true, FontFamily = Ui.Mono, FontSize = 12, BorderThickness = new Thickness(0),
+                IsReadOnly = true, IsDocumentEnabled = true, FontFamily = Ui.Mono, FontSize = 13, BorderThickness = new Thickness(0),
                 VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
-                Document = new FlowDocument(doc) { PageWidth = 4000 }, Padding = new Thickness(6),
+                Document = new FlowDocument(doc) { FontFamily = Ui.Mono, FontSize = 13, PagePadding = new Thickness(4), TextAlignment = TextAlignment.Left }, Padding = new Thickness(6),
             };
             Child = box;
             runner.Lines.CollectionChanged += OnLines;

@@ -370,8 +370,7 @@ public static class CommandExplainer
 
     public static CommandExplanation Explain(IReadOnlyList<string> args)
     {
-        var shown = args.Where(a => a != "--literal-pathspecs");
-        var cmd = "git " + string.Join(" ", shown.Select(Quote));
+        var cmd = Display(args);
         int si = SubcommandIndex(args);
         if (si < 0) return new CommandExplanation(cmd, "", []);
         var sub = args[si];
@@ -392,17 +391,29 @@ public static class CommandExplainer
         return new CommandExplanation(cmd, Subcommands.GetValueOrDefault(sub) ?? "", opts);
     }
 
+    /// <summary>
+    /// Quotes an argument the way PowerShell / cmd users would type it. Backslashes are left alone
+    /// (Windows paths stay readable); only arguments with spaces or quotes are wrapped in "...".
+    /// </summary>
     public static string Quote(string s)
     {
         if (s.Length == 0) return "\"\"";
-        if (s.Any(c => c is ' ' or '"' or '\'' or '$' or '`' or '\\' or '\n'))
-            return "\"" + s.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
+        if (s.Any(c => c is ' ' or '\t' or '"' or '\'' or '$' or '`' or '\n' or '&' or '|' or '<' or '>' or ';'))
+            return "\"" + s.Replace("\"", "\\\"") + "\"";
         return s;
+    }
+
+    /// <summary>Shortens GitVelto's temporary files (pathspec lists, messages) to %TEMP%\GitVelto\... for display.</summary>
+    public static string ShortenTemp(string s)
+    {
+        var dir = KGTemp.Dir.TrimEnd('\\');
+        int i = s.IndexOf(dir, StringComparison.OrdinalIgnoreCase);
+        return i < 0 ? s : s[..i] + @"%TEMP%\GitVelto" + s[(i + dir.Length)..];
     }
 
     /// <summary>Command line as shown to the user (without the internal --literal-pathspecs).</summary>
     public static string Display(IEnumerable<string> args) =>
-        "git " + string.Join(" ", args.Where(a => a != "--literal-pathspecs").Select(Quote));
+        "git " + string.Join(" ", args.Where(a => a != "--literal-pathspecs").Select(a => Quote(ShortenTemp(a))));
 }
 
 // ---- Command history ----

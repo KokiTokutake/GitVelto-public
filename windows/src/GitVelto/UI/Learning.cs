@@ -65,7 +65,7 @@ public sealed class TermCard : StackPanel
             Children.Add(new TextBlock { Text = "コマンドでは", FontSize = 11, Foreground = Ui.Secondary(), Margin = new Thickness(0, 10, 0, 2) });
             Children.Add(new TextBox
             {
-                Text = entry.Command, IsReadOnly = true, FontFamily = Ui.Mono, FontSize = 12, TextWrapping = TextWrapping.Wrap,
+                Text = entry.Command, IsReadOnly = true, FontFamily = Ui.Mono, FontSize = 13, TextWrapping = TextWrapping.Wrap,
             });
         }
         if (entry.Related.Length > 0)
@@ -177,7 +177,7 @@ public sealed class CommandExplanationRow : StackPanel
         Margin = new Thickness(0, 4, 0, 0);
         Children.Add(new TextBox
         {
-            Text = "$ " + ex.Command, FontFamily = Ui.Mono, FontSize = 12, IsReadOnly = true, BorderThickness = new Thickness(0),
+            Text = "$ " + ex.Command, FontFamily = Ui.Mono, FontSize = 13, IsReadOnly = true, BorderThickness = new Thickness(0),
             Background = Brushes.Transparent, Padding = new Thickness(0), TextWrapping = expanded ? TextWrapping.Wrap : TextWrapping.NoWrap,
         });
         if (!expanded) return;

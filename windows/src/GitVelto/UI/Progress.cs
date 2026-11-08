@@ -195,7 +195,7 @@ public sealed class ProgressView : GVView
     private readonly ProgressBar spinner = new() { IsIndeterminate = true, Width = 80, Height = 4, Margin = new Thickness(12, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
     private readonly RichTextBox output;
     private readonly Paragraph doc = new() { Margin = new Thickness(0) };
-    private readonly TextBlock partialText = new() { FontFamily = Ui.Mono, FontSize = 12, Margin = new Thickness(10, 0, 10, 4), TextTrimming = TextTrimming.CharacterEllipsis };
+    private readonly TextBlock partialText = new() { FontFamily = Ui.Mono, FontSize = 13, Margin = new Thickness(10, 0, 10, 4), TextTrimming = TextTrimming.CharacterEllipsis };
     private readonly StackPanel actionButtons = new() { Orientation = Orientation.Horizontal };
     private readonly Button closeButton = new() { Content = "中止", MinWidth = 90, Margin = new Thickness(8, 0, 0, 0) };
     private readonly CheckBox rawToggle = new() { Content = "原文 (英語) を表示", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) };
@@ -209,9 +209,9 @@ public sealed class ProgressView : GVView
 
         output = new RichTextBox
         {
-            IsReadOnly = true, IsDocumentEnabled = true, FontFamily = Ui.Mono, FontSize = 12,
-            VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
-            Document = new FlowDocument(doc) { PageWidth = 4000 },
+            IsReadOnly = true, IsDocumentEnabled = true, FontFamily = Ui.Mono, FontSize = 13,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+            Document = new FlowDocument(doc) { FontFamily = Ui.Mono, FontSize = 13, PagePadding = new Thickness(4), TextAlignment = TextAlignment.Left },
             Padding = new Thickness(6),
         };
 
@@ -343,7 +343,7 @@ public sealed class ProgressView : GVView
                 var opts = string.Join(" / ", ex.Options.Select(o => $"{o.Option}: {o.Meaning}"));
                 var note = (ex.Summary.Length > 0 ? "\n  ↳ " + ex.Summary : "") + (opts.Length > 0 ? "\n    " + opts : "");
                 if (note.Length > 0)
-                    doc.Inlines.Add(new Run(note) { Foreground = Ui.Accent(), FontFamily = SystemFonts.MessageFontFamily, FontSize = 11.5 });
+                    doc.Inlines.Add(new Run(note) { Foreground = Ui.Accent(), FontFamily = SystemFonts.MessageFontFamily, FontSize = 12 });
             }
         }
         output.ScrollToEnd();

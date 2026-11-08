@@ -5,7 +5,8 @@
              ShutdownMode="OnExplicitShutdown">
     <Application.Resources>
         <ResourceDictionary>
-            <FontFamily x:Key="MonoFont">Cascadia Mono, Consolas, BIZ UDGothic, MS Gothic</FontFamily>
+            <!-- Japanese-capable monospace fonts first (Latin-only fonts would fall back to a different Japanese font per glyph). -->
+            <FontFamily x:Key="MonoFont">UDEV Gothic JPDOC, UDEV Gothic, HackGen, PlemolJP, BIZ UDGothic, Cascadia Mono, Consolas, MS Gothic</FontFamily>
             <FontFamily x:Key="IconFont">Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>
 
             <SolidColorBrush x:Key="StateModified" Color="#D7263D"/>

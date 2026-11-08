@@ -63,6 +63,7 @@ public static class GitOps
         // Staged deletions and the old side of staged renames are no longer known to the index,
         // and `git add -- <path>` would fail with "pathspec did not match".
         var addRels = new List<string>();
+        var removeRels = new List<string>();
         foreach (var e in entries)
         {
             rels.Add(e.Path);
@@ -70,7 +71,10 @@ public static class GitOps
             var abs = repo.Absolute(e.Path);
             bool inWorktree = File.Exists(abs) || Directory.Exists(abs);
             bool inIndex = e.Y != ' ' && e.Y != '?';   // has unstaged changes => present in index
-            if (inWorktree || inIndex) addRels.Add(e.Path);
+            if (inWorktree) addRels.Add(e.Path);
+            // Deleted from the work tree but still in the index: stage the deletion with "rm --cached".
+            // ("add -A" would also work, but warns "could not open directory" when the whole folder is gone.)
+            else if (inIndex) removeRels.Add(e.Path);
             if (e.OrigPath != null)
             {
                 var o2 = repo.Absolute(e.OrigPath);
@@ -84,6 +88,11 @@ public static class GitOps
         {
             if (repo.PathspecFile(addRels) is not { } f) return [TempError()];
             steps.Add(ProgressStep.Git(["--literal-pathspecs", "add", "-A", .. FromFile(f)]));
+        }
+        if (removeRels.Count > 0)
+        {
+            if (repo.PathspecFile(removeRels) is not { } f) return [TempError()];
+            steps.Add(ProgressStep.Git(["--literal-pathspecs", "rm", "--cached", "-q", "--ignore-unmatch", .. FromFile(f)]));
         }
         if (repo.MessageFile(o.Message) is not { } msgFile) return [TempError()];
         var args = new List<string> { "--literal-pathspecs", "commit", "-F", msgFile, "--cleanup=strip" };
