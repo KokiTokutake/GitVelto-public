@@ -1,6 +1,6 @@
 #!/bin/bash
 # Creates sample repositories for manual / snapshot testing.
-#   scripts/make_test_repos.sh <dir>
+#   shared/make_test_repos.sh <dir>   (used by both the macOS and Windows tests)
 # <dir>/remote.git   bare "origin"
 # <dir>/work         main working copy: outgoing + incoming commits, local changes, stash, tags, branches
 # <dir>/conflict     a repository in the middle of a merge conflict

@@ -1,11 +1,11 @@
-﻿# Builds windows/src/GitVelto/Assets/AppIcon.ico (and AppIcon.png) from Resources/AppIcon.png
-# (the same artwork as the macOS version). Run again after replacing Resources/AppIcon.png.
+﻿# Builds windows/src/GitVelto/Assets/AppIcon.ico (and AppIcon.png) from mac/Resources/AppIcon.png
+# (the same artwork as the macOS version). Run again after replacing mac/Resources/AppIcon.png.
 #   powershell -ExecutionPolicy Bypass -File windows/scripts/make-icon.ps1
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Drawing
 
 $root = Resolve-Path (Join-Path $PSScriptRoot '..\..')
-$src = Join-Path $root 'Resources\AppIcon.png'
+$src = Join-Path $root 'mac\Resources\AppIcon.png'
 $outDir = Join-Path $root 'windows\src\GitVelto\Assets'
 New-Item -ItemType Directory -Force $outDir | Out-Null
 

@@ -4,7 +4,7 @@ namespace GitVelto.Tests;
 
 /// <summary>
 /// Runs GitVelto's git command builders against real sample repositories
-/// (port of Tests/Functional/main.swift of the macOS version; same sample repositories).
+/// (port of mac/Tests/Functional/main.swift of the macOS version; same sample repositories).
 /// </summary>
 public class FunctionalTests
 {

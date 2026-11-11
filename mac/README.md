@@ -1,6 +1,7 @@
-# GitVelto
+# GitVelto for macOS
 
-macOS の Finder に統合された、**TortoiseGit 風の Git クライアント**です（UI はすべて日本語）。
+macOS の Finder に統合された、**TortoiseGit 風の Git クライアント**です（UI はすべて日本語）。Windows 版は [`../windows`](../windows/README.md) にあります。
+この README のコマンドとパスは、すべて `mac/` フォルダからの相対パスです。
 Finder でファイルやフォルダを右クリックするだけで、コミット・ログ・差分・同期・ブランチ操作などを GUI ダイアログで行えます。
 Finder 上のファイルには Git の状態を示すアイコンオーバーレイ（バッジ）が表示されます。
 
@@ -73,6 +74,7 @@ UI はすべて日本語です。git 本体には日本語のメッセージカ�
 ## ビルドとインストール
 
 ```bash
+cd mac
 ./build.sh install
 ```
 
@@ -112,7 +114,7 @@ scripts/test.sh         # 機能テスト（サンプルリポジトリでコミ
 scripts/snapshot.sh     # 全ダイアログをオフスクリーン描画して build/snapshots/*.png に出力
 scripts/window-probe.sh # 全ダイアログを実ウインドウで 2 回ずつ開き、クラッシュがないか確認（画面に一瞬ウインドウが出ます）
 scripts/finder-e2e.sh   # インストール済みアプリに Finder メニューと同じ gitvelto:// URL を送り、全操作のダイアログが開くか確認
-scripts/make_test_repos.sh <dir>   # 動作確認用のサンプルリポジトリを作成
+../shared/make_test_repos.sh <dir> # 動作確認用のサンプルリポジトリを作成（Windows 版のテストと共通）
 ```
 
 ### アーキテクチャ

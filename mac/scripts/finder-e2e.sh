@@ -1,9 +1,9 @@
 #!/bin/bash
-# Usage: scripts/finder-e2e.sh   (requires the app installed in /Applications; dialogs appear on screen)
+# Usage: mac/scripts/finder-e2e.sh   (requires the app installed in /Applications; dialogs appear on screen)
 # Opens every Finder-menu action through the gitvelto:// URL (exactly what the Finder extension does)
 # against the installed app, then checks the app log for the opened window.
 W="$TMPDIR/gitvelto-test-repos/work"; C="$TMPDIR/gitvelto-test-repos/conflict"
-"$(dirname "$0")/make_test_repos.sh" "$TMPDIR/gitvelto-test-repos" >/dev/null
+"$(dirname "$0")/../../shared/make_test_repos.sh" "$TMPDIR/gitvelto-test-repos" >/dev/null
 enc() { python3 -c 'import sys,urllib.parse;print(urllib.parse.quote(sys.argv[1]))' "$1"; }
 pass=0; fail=0
 check() { # action path expected-title-fragment

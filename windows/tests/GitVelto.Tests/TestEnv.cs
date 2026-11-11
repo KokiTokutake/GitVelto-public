@@ -25,8 +25,8 @@ internal static class TestEnv
     public static string RepoRootDir()
     {
         var d = new DirectoryInfo(AppContext.BaseDirectory);
-        while (d != null && !File.Exists(Path.Combine(d.FullName, "scripts", "make_test_repos.sh"))) d = d.Parent;
-        return d?.FullName ?? throw new InvalidOperationException("scripts/make_test_repos.sh not found");
+        while (d != null && !File.Exists(Path.Combine(d.FullName, "shared", "make_test_repos.sh"))) d = d.Parent;
+        return d?.FullName ?? throw new InvalidOperationException("shared/make_test_repos.sh not found");
     }
 
     public static string Bash =>
@@ -55,7 +55,7 @@ internal static class TestEnv
     public static string MakeTestRepos()
     {
         var dir = Path.Combine(Temp, "repos-" + Guid.NewGuid().ToString("N")[..6]);
-        var script = Path.Combine(RepoRootDir(), "scripts", "make_test_repos.sh").Replace('\\', '/');
+        var script = Path.Combine(RepoRootDir(), "shared", "make_test_repos.sh").Replace('\\', '/');
         var o = Sh($"bash '{script}' '{dir.Replace('\\', '/')}'", Temp);
         if (!o.Contains("created test repositories")) throw new InvalidOperationException("make_test_repos failed: " + o);
         return dir;

@@ -8,8 +8,8 @@ using GitVelto.Core;
 namespace GitVelto.UI;
 
 /// <summary>
-/// Development aid: renders every dialog off screen into PNG files (port of scripts/snapshot.sh of the macOS version).
-///   GitVelto.exe --snapshot &lt;output folder&gt; &lt;sample repositories folder (scripts/make_test_repos.sh)&gt; [light|dark]
+/// Development aid: renders every dialog off screen into PNG files (port of mac/scripts/snapshot.sh of the macOS version).
+///   GitVelto.exe --snapshot &lt;output folder&gt; &lt;sample repositories folder (shared/make_test_repos.sh)&gt; [light|dark]
 /// </summary>
 public static class Snapshot
 {

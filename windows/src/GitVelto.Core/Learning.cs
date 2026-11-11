@@ -20,7 +20,7 @@ public sealed class GlossaryEntry(string id, string term, string english, string
     public string SearchText => string.Join(" ", Id, Term, English, Summary, Detail, Command).ToLowerInvariant();
 }
 
-/// <summary>Glossary content is generated from the macOS version (Sources/App/Core/Learning.swift).</summary>
+/// <summary>Glossary content is generated from the macOS version (mac/Sources/App/Core/Learning.swift).</summary>
 public static class Glossary
 {
     public static readonly GlossaryEntry[] Entries =

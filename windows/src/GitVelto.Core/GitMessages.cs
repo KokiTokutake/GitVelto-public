@@ -4,7 +4,7 @@ namespace GitVelto.Core;
 
 /// <summary>
 /// Translates common git output into Japanese (git ships no Japanese catalog).
-/// Unknown lines are returned unchanged. Rules are generated from the macOS version (Sources/App/Core/GitMessages.swift).
+/// Unknown lines are returned unchanged. Rules are generated from the macOS version (mac/Sources/App/Core/GitMessages.swift).
 /// </summary>
 public static class GitMessages
 {
