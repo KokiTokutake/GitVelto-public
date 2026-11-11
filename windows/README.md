@@ -1,18 +1,18 @@
 # GitVelto for Windows
 
-macOS 版 GitVelto（このリポジトリのルート）の Windows 版です。エクスプローラーに統合された、TortoiseGit 風の Git クライアントです。UI はすべて日本語で、git の出力も日本語に変換して表示します。学習モード（実行される git コマンドとその意味の表示）、Git 用語集、コマンド履歴も Mac 版と同じように使えます。
+macOS 版 GitVelto（[`../mac`](../mac/README.md)）の Windows 版です。エクスプローラーに統合された、TortoiseGit 風の Git クライアントです。UI はすべて日本語で、git の出力も日本語に変換して表示します。学習モード（実行される git コマンドとその意味の表示）、Git 用語集、コマンド履歴も Mac 版と同じように使えます。
 
 ## 構成
 
 | プロジェクト | 内容 | Mac 版での対応 |
 | --- | --- | --- |
-| `src/GitVelto.Core` | git の実行、出力の解析、コマンドの組み立て、日本語化、学習モード、設定、メニュー判定 (C#) | `Sources/App/Core`、`Sources/Shared` |
-| `src/GitVelto` | GitVelto.exe。各ダイアログ (WPF)、タスクトレイ、認証ダイアログ (GIT_ASKPASS) | `Sources/App/UI`、`AppDelegate` |
+| `src/GitVelto.Core` | git の実行、出力の解析、コマンドの組み立て、日本語化、学習モード、設定、メニュー判定 (C#) | `mac/Sources/App/Core`、`mac/Sources/Shared` |
+| `src/GitVelto` | GitVelto.exe。各ダイアログ (WPF)、タスクトレイ、認証ダイアログ (GIT_ASKPASS) | `mac/Sources/App/UI`、`AppDelegate` |
 | `src/GitVeltoCache` | GitVeltoCache.exe。オーバーレイ用の状態キャッシュ (TGitCache 相当)。名前付きパイプで応答し、FileSystemWatcher で変更を監視して SHChangeNotify でエクスプローラーを更新 | `StatusService` |
-| `src/GitVeltoShell` | GitVeltoShell.dll。エクスプローラーのシェル拡張 (C++/COM)。右クリックメニューとアイコンオーバーレイ 6 種類 | `Sources/FinderSync` |
-| `src/GitVeltoSetup` | GitVeltoSetup.exe。アプリ一式を埋め込んだインストーラー（ランタイム同梱の単一ファイル） | `build.sh install` |
+| `src/GitVeltoShell` | GitVeltoShell.dll。エクスプローラーのシェル拡張 (C++/COM)。右クリックメニューとアイコンオーバーレイ 6 種類 | `mac/Sources/FinderSync` |
+| `src/GitVeltoSetup` | GitVeltoSetup.exe。アプリ一式を埋め込んだインストーラー（ランタイム同梱の単一ファイル） | `mac/build.sh install` |
 | `package` | Windows 11 の右クリックメニュー用スパースパッケージのマニフェストとロゴ | — |
-| `tests/GitVelto.Tests` | xUnit。Mac 版の機能テストの移植、メニュー判定、日本語化、シェル拡張を直接読み込むテスト | `Tests/*` |
+| `tests/GitVelto.Tests` | xUnit。Mac 版の機能テストの移植、メニュー判定、日本語化、シェル拡張を直接読み込むテスト | `mac/Tests/*` |
 
 - 右クリック → 操作: シェル拡張が `GitVelto.exe <操作> --pathfile <一時ファイル>` を起動します。GitVelto.exe がすでに起動していれば、名前付きパイプで要求を渡して終了します（単一インスタンス）。
 - 状態アイコン: シェル拡張がフォルダ単位で GitVeltoCache に問い合わせます（`dir\t<フォルダ>`）。キャッシュは `git status --porcelain -z --ignored` の結果をリポジトリ単位で持ち、変化があった項目だけエクスプローラーに通知します。キャッシュが起動していなければシェル拡張が起動します。
@@ -46,6 +46,15 @@ powershell -ExecutionPolicy Bypass -File windows\build.ps1 -Install   # ビル�
 
 アンインストールは「アプリと機能」から、または `"%ProgramFiles%\GitVelto\install.ps1" -Uninstall`（管理者）で行えます。
 
+### 自己署名証明書についての注意
+
+GitVelto には正式なコード署名がありません。Windows 11 の新しい右クリックメニューに出すためのパッケージには署名が必要なので、次のように自己署名証明書を使っています。
+
+- `build.ps1` は、初回のビルド時に `CN=GitVelto Local Build` の証明書を作ります。秘密鍵はビルドした PC の `Cert:\CurrentUser\My` に入ります（有効期限 5 年）
+- インストール時（`build.ps1 -Install` と `GitVeltoSetup.exe` のどちらでも）、その証明書の公開鍵を `Cert:\LocalMachine\TrustedPeople` に追加します。アンインストールで削除します
+- `GitVeltoSetup.exe` を別の PC で実行すると、**ビルドした PC の証明書がその PC で信頼されます**。他の人が作ったインストーラーは実行せず、自分でソースからビルドしてください
+- 証明書が残っていないかは `Get-ChildItem Cert:\LocalMachine\TrustedPeople | Where-Object Subject -eq 'CN=GitVelto Local Build'` で確認できます。ビルドした PC の秘密鍵が不要になったら `Cert:\CurrentUser\My` から削除してください
+
 ### アイコンオーバーレイについて
 
 Windows が表示できるオーバーレイは、登録名の順で先頭 15 個までです。GitVelto は名前の先頭に空白を 3 つ付けて登録します（空白 4 つの Google Drive の後、空白 2 つの OneDrive・TortoiseGit の前）。設定 > アイコンオーバーレイ に、GitVelto の 6 個のうち何個が有効かを表示します。
@@ -62,11 +71,11 @@ TortoiseGit と併用すると右クリックメニューに両方が表示さ�
 dotnet test windows\tests\GitVelto.Tests                     # テスト (シェル拡張のテストは C++ のビルド後に実行される)
 windows\src\GitVelto\bin\Debug\net10.0-windows\GitVelto.exe --snapshot <出力先> <サンプルリポジトリ> [light|dark]
                                                              # 全ダイアログを画面外で描画して PNG に保存
-bash scripts/make_test_repos.sh <dir>                        # サンプルリポジトリの作成 (Mac 版と共通、Git Bash で実行)
+bash shared/make_test_repos.sh <dir>                         # サンプルリポジトリの作成 (Mac 版と共通、Git Bash で実行)
 powershell -File windows\scripts\cache-query.ps1 "dir`t<フォルダ>"  # キャッシュへの問い合わせ (デバッグ用)
 powershell -File windows\scripts\make-overlays.ps1           # オーバーレイアイコンの再生成
 powershell -File windows\scripts\make-menu-icons.ps1         # 右クリックメニューのアイコンの再生成
-powershell -File windows\scripts\make-icon.ps1               # Resources/AppIcon.png からアプリアイコンを再生成
+powershell -File windows\scripts\make-icon.ps1               # mac/Resources/AppIcon.png からアプリアイコンを再生成
 ```
 
 GitVeltoCache.exe を `--log` 付きで起動すると `%TEMP%\GitVelto\cache.log` にログを出します。
