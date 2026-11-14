@@ -6,13 +6,16 @@ macOS の Finder と Windows のエクスプローラーに統合された、**T
 - ファイルとフォルダに、Git の状態を示すアイコン（オーバーレイ）を表示します
 - git の出力を日本語に変換して表示します（原文の英語にも切り替えられます）
 - 学習モードでは、実行する git コマンドとその意味を確認できます。Git 用語集とコマンド履歴もあります
+  - 非エンジニアのGit操作を想定しています 
 
 ## 版ごとの説明
 
-| 版 | フォルダ | 技術 | 説明 |
-| --- | --- | --- | --- |
-| macOS 版 | [`mac/`](mac/README.md) | Swift / SwiftUI、Finder Sync 拡張 | macOS 14 以降。Xcode 本体なしでビルドできます |
-| Windows 版 | [`windows/`](windows/README.md) | C# / WPF、C++ のシェル拡張 | Windows 10 / 11 (x64)。.NET 10 と Git for Windows が必要です |
+
+| 版         | フォルダ                            | 技術                             | 説明                                                    |
+| --------- | ------------------------------- | ------------------------------ | ----------------------------------------------------- |
+| macOS 版   | [`mac/`](mac/README.md)         | Swift / SwiftUI、Finder Sync 拡張 | macOS 14 以降。Xcode 本体なしでビルドできます                        |
+| Windows 版 | [`windows/`](windows/README.md) | C# / WPF、C++ のシェル拡張            | Windows 10 / 11 (x64)。.NET 10 と Git for Windows が必要です |
+
 
 TortoiseGit の機能との対応表は [`mac/README.md`](mac/README.md#tortoisegit-との機能対応) にあります。
 
